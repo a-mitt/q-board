@@ -48,7 +48,7 @@ export default function PostModal({ isOpen, onClose, onSuccess }: Props) {
     // 1. 質問を保存
     const { data: qData, error: qError } = await supabase
       .from("questions")
-      .insert({ user_id: user.id, title: content.slice(0, 20), content, is_anonymous: isAnonymous })
+      .insert({ user_id: user.id, title: content.slice(0, 20), content, is_anonymous: isAnonymous, is_hidden: false })
       .select().single();
 
     if (qError) {
