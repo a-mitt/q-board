@@ -146,22 +146,33 @@ export default function SettingsPage() {
             </h2>
             
             <label className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl cursor-pointer hover:border-gray-300 transition shadow-sm">
-              <span className="text-sm font-bold text-gray-700">回答・レスがついた時に通知する</span>
+              <span className="text-sm font-bold text-gray-700">新しい回答がついた時</span>
               <input 
                 type="checkbox" 
-                checked={settings.notifications?.onAnswer || false}
+                checked={settings.notifications?.onAnswer ?? true}
                 onChange={(e) => setSettings({ ...settings, notifications: { ...settings.notifications, onAnswer: e.target.checked } })}
-                className="w-5 h-5 accent-gray-900 cursor-pointer" 
+                className="w-5 h-5 accent-gray-900" 
+              />
+            </label>
+
+            {/* ★ 追加：返信通知の設定 */}
+            <label className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl cursor-pointer hover:border-gray-300 transition shadow-sm">
+              <span className="text-sm font-bold text-gray-700">自分の回答に返信がきた時</span>
+              <input 
+                type="checkbox" 
+                checked={settings.notifications?.onReply ?? true}
+                onChange={(e) => setSettings({ ...settings, notifications: { ...settings.notifications, onReply: e.target.checked } })}
+                className="w-5 h-5 accent-gray-900" 
               />
             </label>
 
             <label className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl cursor-pointer hover:border-gray-300 transition shadow-sm">
-              <span className="text-sm font-bold text-gray-700">リアクションされた時に通知する</span>
+              <span className="text-sm font-bold text-gray-700">リアクションされた時</span>
               <input 
                 type="checkbox" 
-                checked={settings.notifications?.onReaction || false}
+                checked={settings.notifications?.onReaction ?? true}
                 onChange={(e) => setSettings({ ...settings, notifications: { ...settings.notifications, onReaction: e.target.checked } })}
-                className="w-5 h-5 accent-gray-900 cursor-pointer" 
+                className="w-5 h-5 accent-gray-900" 
               />
             </label>
           </div>

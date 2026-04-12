@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
-import { MessageSquare, Plus, Loader2, Users, Clock } from "lucide-react";
+import { 
+  MessageSquare, Plus, Loader2, Users, Clock, 
+  Search, Filter, TrendingUp // ★この3つを忘れず追加！
+} from "lucide-react";
 import CreateThreadModal from "@/components/board/CreateThreadModal";
 
 export default function ThreadsPage() {
@@ -21,6 +24,7 @@ export default function ThreadsPage() {
         profiles (nickname),
         thread_posts (id)
       `)
+      .eq("is_hidden", false) // ★ これを追加
       .order("created_at", { ascending: false });
 
     if (!error && data) {
@@ -42,6 +46,25 @@ export default function ThreadsPage() {
         <p className="text-blue-100 text-sm font-medium">
           サークル募集、趣味の話、授業の愚痴など、自由に語り合う場所です！
         </p>
+      </div>
+      {/* スマホ用検索・フィルタ */}
+      <div className="flex flex-col gap-2 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+          <input 
+            type="text" 
+            placeholder="スレッドを検索..." 
+            className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+          />
+        </div>
+        <div className="flex gap-2">
+          <button className="flex-1 py-2 px-3 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 flex items-center justify-center gap-1">
+            <Filter size={14} /> 最新順
+          </button>
+          <button className="flex-1 py-2 px-3 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 flex items-center justify-center gap-1">
+            <TrendingUp size={14} /> 人気順
+          </button>
+        </div>
       </div>
 
       {loading ? (

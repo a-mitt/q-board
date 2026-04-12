@@ -50,6 +50,7 @@ export default function Home() {
         answers(content, created_at),
         question_tags(tags(name))
       `)
+      .eq("is_hidden", false) // ★ これを追加
       .order("created_at", { ascending: false });
 
     if (error) {
