@@ -64,7 +64,7 @@ export default function LoginPage() {
 
         <form onSubmit={handleAuth} className="p-6 space-y-4">
           <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1">メールアドレス</label>
+            <label className="block text-xs font-bold text-gray-500 mb-1">メールアドレス(学校メール推奨)</label>
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               <input 
