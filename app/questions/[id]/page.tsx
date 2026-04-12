@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   ArrowLeft, Send, User, Lock, Loader2, MoreHorizontal, 
-  Reply, AlertTriangle, Copy, X, CornerDownRight 
+  Reply, AlertTriangle, Copy, X, CornerDownRight, EyeOff, RefreshCcw, Trash2
 } from "lucide-react";
 import ReactionButtons from "@/components/board/ReactionButtons";
 import TagEditor from "@/components/board/TagEditor";
@@ -18,6 +18,7 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [myRole, setMyRole] = useState<string>("student"); // ★権限ステートを追加
   const [question, setQuestion] = useState<any>(null);
   const [answers, setAnswers] = useState<any[]>([]);
   const [newAnswer, setNewAnswer] = useState("");
@@ -31,6 +32,11 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     setCurrentUser(user);
+
+    if (user) {
+      const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+      setMyRole(profile?.role || "student");
+    }
 
     const { data: qData } = await supabase.from("questions").select("*, profiles(*)").eq("id", id).single();
     if (qData) setQuestion(qData);
@@ -97,6 +103,32 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
     setOpenMenuId(null);
   };
 
+  const handleReport = async (targetId: string, type: 'question' | 'answer') => {
+    const reason = prompt("通報の理由を入力してください：");
+    if (!reason) return;
+    await supabase.from("reports").insert({
+      reporter_id: currentUser?.id,
+      target_type: type,
+      target_id: targetId,
+      reason: reason
+    });
+    alert("通報しました。");
+    setOpenMenuId(null);
+  };
+
+  // ★ 削除処理
+  const handleDeleteAnswer = async (answerId: string) => {
+    if (!confirm("この回答を完全に削除しますか？（元に戻せません）")) return;
+    await supabase.from("answers").delete().eq("id", answerId);
+    fetchData();
+  };
+
+  const handleDeleteQuestion = async (questionId: string) => {
+    if (!confirm("この質問を完全に削除しますか？（回答もすべて消えます）")) return;
+    await supabase.from("questions").delete().eq("id", questionId);
+    router.push("/");
+  };
+
   if (loading || !question) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-500" size={40} /></div>;
 
   return (
@@ -104,15 +136,39 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
       <Link href="/" className="flex items-center gap-2 text-gray-500 text-sm"><ArrowLeft size={18} /> 一覧に戻る</Link>
 
       {/* 質問本文 */}
-      <section className="bg-white p-6 rounded-2xl shadow-sm border">
-        <div className="flex items-center gap-3 mb-4">
-          <span className="text-4xl font-black text-blue-500">Q.</span>
-          <div>
-            <p className="text-sm font-bold">{question.is_anonymous ? "匿名さん" : question.profiles?.nickname}</p>
-            <p className="text-[10px] text-gray-400">{new Date(question.created_at).toLocaleString()}</p>
+      <section className="bg-white p-6 rounded-2xl shadow-sm border relative group">
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex items-center gap-3">
+            <span className="text-4xl font-black text-blue-500">Q.</span>
+            <div>
+              {/* ★ 文字色をハッキリ調整（text-gray-700に変更） */}
+              <p className="text-sm font-bold text-gray-700">{question.is_anonymous ? "匿名さん" : question.profiles?.nickname}</p>
+              <p className="text-[11px] text-gray-500 font-medium">{new Date(question.created_at).toLocaleString()}</p>
+            </div>
+          </div>
+
+          {/* ★ 質問本文の三点リーダーメニュー */}
+          <div className="relative">
+            <button onClick={() => setOpenMenuId(openMenuId === question.id ? null : question.id)} className="p-1 text-gray-400 hover:text-gray-600 transition"><MoreHorizontal size={20} /></button>
+            {openMenuId === question.id && (
+              <div className="absolute right-0 top-8 w-40 bg-white border shadow-lg rounded-xl z-10 overflow-hidden text-xs font-bold">
+                <button onClick={() => handleCopy(question.content)} className="w-full p-3 text-left hover:bg-gray-50 flex items-center gap-2 text-gray-600"><Copy size={14}/>コピー</button>
+                <button onClick={() => handleReport(question.id, 'question')} className="w-full p-3 text-left text-red-500 hover:bg-red-50 flex items-center gap-2"><AlertTriangle size={14}/>通報</button>
+                
+                {/* 質問削除（自分の投稿 or 管理者） */}
+                {(currentUser?.id === question.user_id || myRole === "admin" || myRole === "moderator") && (
+                  <div className="border-t border-gray-100 mt-1 pt-1">
+                    <button onClick={() => handleDeleteQuestion(question.id)} className="w-full p-3 text-left text-red-600 hover:bg-red-600 hover:text-white flex items-center gap-2 transition-colors">
+                      <Trash2 size={14} /> 削除する
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
-        <p className="text-gray-800 text-lg whitespace-pre-wrap mb-4">{question.content}</p>
+        {/* ★ 本文の文字色を text-gray-900 に */}
+        <p className="text-gray-900 text-lg whitespace-pre-wrap mb-4 leading-relaxed">{question.content}</p>
         <ReactionButtons targetId={question.id} type="question" />
       </section>
 
@@ -121,29 +177,41 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
         {answers.map((ans) => (
           <div key={ans.id} className="bg-gray-50 p-5 rounded-xl border relative group">
             {ans.reply_to && (
-              <div className="flex items-center gap-1 text-[10px] text-gray-400 mb-2">
+              <div className="flex items-center gap-1 text-[10px] text-gray-500 mb-2">
                 <CornerDownRight size={12} /> ↳ {ans.reply_to.profiles?.nickname || "匿名"}さんの回答へ返信
               </div>
             )}
             <div className="flex justify-between">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xl font-black text-red-400">A.</span>
-                <span className="text-xs font-bold text-gray-600">{ans.is_anonymous ? "匿名さん" : ans.profiles?.nickname}</span>
+                <span className="text-xs font-bold text-gray-700">{ans.is_anonymous ? "匿名さん" : ans.profiles?.nickname}</span>
               </div>
               
-              {/* 三点リーダー */}
+              {/* 回答の三点リーダーメニュー */}
               <div className="relative">
-                <button onClick={() => setOpenMenuId(openMenuId === ans.id ? null : ans.id)} className="p-1 text-gray-400"><MoreHorizontal size={18} /></button>
+                <button onClick={() => setOpenMenuId(openMenuId === ans.id ? null : ans.id)} className="p-1 text-gray-400 hover:text-gray-600 transition"><MoreHorizontal size={18} /></button>
                 {openMenuId === ans.id && (
-                  <div className="absolute right-0 top-8 w-32 bg-white border shadow-lg rounded-xl z-10 overflow-hidden text-xs font-bold">
-                    <button onClick={() => { setReplyTarget(ans); setOpenMenuId(null); textareaRef.current?.focus(); }} className="w-full p-3 text-left hover:bg-gray-50 flex items-center gap-2"><Reply size={14}/>返信する</button>
-                    <button onClick={() => handleCopy(ans.content)} className="w-full p-3 text-left hover:bg-gray-50 flex items-center gap-2"><Copy size={14}/>コピー</button>
-                    <button className="w-full p-3 text-left text-red-500 hover:bg-red-50 flex items-center gap-2"><AlertTriangle size={14}/>通報</button>
+                  <div className="absolute right-0 top-8 w-40 bg-white border shadow-lg rounded-xl z-10 overflow-hidden text-xs font-bold">
+                    <button onClick={() => { setReplyTarget(ans); setOpenMenuId(null); textareaRef.current?.focus(); }} className="w-full p-3 text-left hover:bg-gray-50 flex items-center gap-2 text-gray-600"><Reply size={14}/>返信する</button>
+                    <button onClick={() => handleCopy(ans.content)} className="w-full p-3 text-left hover:bg-gray-50 flex items-center gap-2 text-gray-600"><Copy size={14}/>コピー</button>
+                    {currentUser?.id !== ans.user_id && (
+                      <button onClick={() => handleReport(ans.id, 'answer')} className="w-full p-3 text-left text-red-500 hover:bg-red-50 flex items-center gap-2 border-t border-gray-50"><AlertTriangle size={14}/>通報</button>
+                    )}
+
+                    {/* ★ 削除ボタン（自分の投稿 or 管理者） */}
+                    {(currentUser?.id === ans.user_id || myRole === "admin" || myRole === "moderator") && (
+                      <div className="border-t border-gray-100 mt-1 pt-1">
+                        <button onClick={() => handleDeleteAnswer(ans.id)} className="w-full p-3 text-left text-red-600 hover:bg-red-600 hover:text-white flex items-center gap-2 transition-colors">
+                          <Trash2 size={14} /> 削除する
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             </div>
-            <p className="text-gray-700">{ans.content}</p>
+            {/* ★ 回答本文の文字色を text-gray-900 に */}
+            <p className="text-gray-900">{ans.content}</p>
             <ReactionButtons targetId={ans.id} type="answer" />
           </div>
         ))}
@@ -168,7 +236,8 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
             required
             value={newAnswer}
             onChange={(e) => setNewAnswer(e.target.value)}
-            className="w-full h-20 p-3 bg-gray-50 border rounded-xl mb-3 outline-none focus:ring-2 focus:ring-blue-500"
+            // ★ placeholder-gray-500 と text-gray-900 で文字をハッキリさせる
+            className="w-full h-20 p-3 bg-gray-50 border rounded-xl mb-3 outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
             placeholder={replyTarget ? "返信を入力..." : "回答を入力..."}
           />
           <div className="flex justify-between">

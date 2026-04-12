@@ -33,11 +33,16 @@ export default function Header() {
 
         {/* 右側：アイコン群 */}
         <div className="flex items-center gap-4 relative">
-          {isModerator && (
-            <button className="p-2 text-gray-500 hover:text-gray-800 transition" title="モデレーターメニュー">
-              <Wrench size={20} />
-            </button>
-          )}
+        {/* ★ここを修正！ button から Link に変えます */}
+        {isModerator && (
+          <Link 
+            href="/admin" 
+            className="p-2 text-gray-500 hover:text-blue-600 transition" 
+            title="管理画面（アドミン・モデレーター専用）"
+          >
+            <Wrench size={20} />
+          </Link>
+        )}
 
           {/* ★修正2: ここで本物の通知ベル（黒文字・ゴミ箱付き）を呼び出す！ */}
           <NotificationBell />

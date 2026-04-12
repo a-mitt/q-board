@@ -122,19 +122,26 @@ export default function ThreadDetailPage({ params }: { params: Promise<{ id: str
     setSubmitting(false);
   };
 
-  // モデレーション
+// モデレーション
   const handleUpdateStatus = async (postId: string, newStatus: string) => {
     if (!confirm(`この投稿を${newStatus === "hidden" ? "非表示" : "公開"}にしますか？`)) return;
-    await supabase.from("thread_posts").update({ status: newStatus }).eq("id", postId);
+    const { error } = await supabase.from("thread_posts").update({ status: newStatus }).eq("id", postId);
+    if (error) alert("更新エラー: " + error.message);
     setOpenMenuId(null);
     fetchThreadData();
   };
 
+  // ★ 修正：エラー時にアラートを出すように変更
   const handleHardDelete = async (postId: string) => {
     if (!confirm("完全に削除しますか？（元に戻せません）")) return;
-    await supabase.from("thread_posts").delete().eq("id", postId);
-    setOpenMenuId(null);
-    fetchThreadData();
+    const { error } = await supabase.from("thread_posts").delete().eq("id", postId);
+    
+    if (error) {
+      alert("削除できませんでした。\n理由: " + error.message + "\n(※この投稿への「返信」や「リアクション」が残っていると削除できない場合があります)");
+    } else {
+      setOpenMenuId(null);
+      fetchThreadData();
+    }
   };
 
   const handleReport = async (postId: string) => {
@@ -162,7 +169,7 @@ export default function ThreadDetailPage({ params }: { params: Promise<{ id: str
         <h1 className="text-2xl font-black text-gray-800 tracking-tight">{thread?.title}</h1>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden divide-y divide-gray-100">
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm divide-y divide-gray-100">
         {posts.map((post) => {
           const dateStr = new Date(post.created_at).toISOString().split('T')[0];
           const dailyId = generateDailyId(post.user_id, dateStr);
@@ -199,10 +206,10 @@ export default function ThreadDetailPage({ params }: { params: Promise<{ id: str
                     <MoreHorizontal size={18} />
                   </button>
                   
-                  {/* 三点リーダーメニューの中身 */}
+                  {/* ★ 修正: z-30 を z-50 に変更して一番手前に来るように */}
                   {openMenuId === post.id && (
-                    <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-gray-200 shadow-xl rounded-xl z-30 overflow-hidden font-bold">
-                      
+                    <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-gray-200 shadow-xl rounded-xl z-50 overflow-hidden font-bold">
+
                       {/* 1. 返信は全員共通 */}
                       <button 
                         onClick={() => { setReplyTarget(post); setOpenMenuId(null); textareaRef.current?.focus(); }}
@@ -288,7 +295,8 @@ export default function ThreadDetailPage({ params }: { params: Promise<{ id: str
               value={content} 
               onChange={(e) => setContent(e.target.value)} 
               placeholder={replyTarget ? `>>${replyTarget.post_number} への返信を入力...` : "メッセージを入力..."} 
-              className={`flex-1 h-20 p-4 bg-gray-50 border border-gray-200 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/50 text-sm resize-none ${replyTarget ? "rounded-b-xl border-t-0" : "rounded-xl"}`} 
+              // ★ 修正: ここに text-gray-900 と placeholder-gray-500 を追加！
+              className={`flex-1 h-20 p-4 bg-gray-50 border border-gray-200 outline-none focus:bg-white focus:ring-2 focus:ring-blue-500/50 text-sm resize-none text-gray-900 placeholder-gray-500 ${replyTarget ? "rounded-b-xl border-t-0" : "rounded-xl"}`} 
             />
             <div className="flex flex-col gap-2">
               <button type="submit" disabled={submitting || !content.trim()} className="h-full px-6 bg-gray-900 text-white rounded-xl font-bold text-sm hover:bg-gray-800 transition disabled:opacity-50">

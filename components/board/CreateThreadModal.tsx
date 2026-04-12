@@ -32,6 +32,7 @@ export default function CreateThreadModal({ isOpen, onClose, onSuccess }: Props)
         creator_id: user.id,
         title: title.trim(),
         content: content.trim(),
+        is_hidden: false,
       })
       .select()
       .single();

@@ -24,7 +24,7 @@ export default function ThreadsPage() {
         profiles (nickname),
         thread_posts (id)
       `)
-      .eq("is_hidden", false) // ★ これを追加
+      .or('is_hidden.eq.false,is_hidden.is.null')
       .order("created_at", { ascending: false });
 
     if (!error && data) {
