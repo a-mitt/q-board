@@ -75,13 +75,28 @@ export default function Home() {
   return (
     <div className="space-y-8 relative">
       {/* 案内メッセージエリア */}
-      <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 text-center space-y-4">
-        <h1 className="text-2xl font-bold text-gray-800 text-center">
+      <section className="bg-white px-6 py-10 rounded-2xl shadow-sm border border-gray-100 text-center flex flex-col items-center justify-center">
+        {/* メインタイトル */}
+        <h1 className="text-2xl md:text-3xl font-black text-gray-800 tracking-tight mb-4">
           右下のボタンから質問してみよう！
         </h1>
-        <p className="text-gray-600 font-medium">
+        
+        {/* 注意書き（少し控えめに） */}
+        <p className="text-xs md:text-sm text-red-500 font-bold bg-red-50 px-4 py-2 rounded-full mb-6">
           ※快適な使用のため、悪口、誹謗中傷、卑猥な言葉などはやめよう :)
         </p>
+        
+        {/* サブメッセージ（少し大きめ＆行間広め） */}
+        <div className="space-y-3">
+          <p className="text-base md:text-lg text-gray-700 font-medium">
+            先生は見てないから自由に質問してOK！<br className="md:hidden" />匿名でも質問できるよ！
+          </p>
+          
+          {/* 例文（薄く、小さく） */}
+          <p className="text-xs text-gray-400 mt-4 leading-relaxed max-w-2xl mx-auto">
+            例：「授業の内容がわからない」「サークルに入るか迷ってる」<br className="hidden md:block" />「学食のおすすめは？」「テスト対策を教えて！」など
+          </p>
+        </div>
       </section>
 
       {/* 質問グリッド表示エリア */}

@@ -21,7 +21,7 @@ const ALL_REACTIONS = [
   { id: "clap", Icon: Sparkles, label: "拍手" },
   { id: "smile", Icon: Smile, label: "スマイル" },
   { id: "sad", Icon: Frown, label: "悲しい" },
-  { id: "wow", Icon: PartyPopper, label: "おお〜" },
+  { id: "wow", Icon: PartyPopper, label: "すごい" },
   { id: "angry", Icon: Flame, label: "怒り" },
   { id: "surprise", Icon: Zap, label: "びっくり" },
   { id: "scary", Icon: Ghost, label: "怖い" },

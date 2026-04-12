@@ -81,7 +81,7 @@ export default function NotificationBell() {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
           
-          <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-200 z-50 overflow-hidden">
+          <div className="absolute right-[-10px] sm:right-0 mt-2 w-[90vw] sm:w-80 max-w-sm bg-white shadow-xl rounded-xl border border-gray-200 z-50">
             {/* ★修正: 「お知らせ」の文字色を text-black にしてクッキリ表示 */}
             <div className="p-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
               <span className="text-sm font-black text-black">お知らせ</span>

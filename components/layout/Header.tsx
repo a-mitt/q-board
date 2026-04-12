@@ -16,7 +16,9 @@ export default function Header() {
         {/* 左側：タイトルとナビゲーション */}
         <div className="flex items-center gap-6">
           <Link href="/" className="text-lg font-light tracking-wider text-gray-800 font-bold">
-            先輩に質問！質問掲示板
+            先輩に質問！
+            <br className="md:hidden" />
+            <span className="md:ml-1">質問掲示板</span>
           </Link>
           
           <nav className="hidden md:flex items-center gap-4 text-sm font-medium text-gray-600">

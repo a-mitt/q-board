@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { 
   MessageSquare, Plus, Loader2, Users, Clock, 
-  Search, Filter, TrendingUp // ★この3つを忘れず追加！
+  Search, Filter, TrendingUp 
 } from "lucide-react";
 import CreateThreadModal from "@/components/board/CreateThreadModal";
 
@@ -14,9 +14,12 @@ export default function ThreadsPage() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // ★ 新規追加：検索キーワードとソート順のState
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<"latest" | "popular">("latest");
+
   const fetchThreads = async () => {
     setLoading(true);
-    // スレッド情報と、作成者のプロフィール、さらに書き込み数（thread_posts）を取得
     const { data, error } = await supabase
       .from("threads")
       .select(`
@@ -24,7 +27,7 @@ export default function ThreadsPage() {
         profiles (nickname),
         thread_posts (id)
       `)
-      .or('is_hidden.eq.false,is_hidden.is.null')
+      .or('is_hidden.eq.false,is_hidden.is.null') // 非表示設定の対応
       .order("created_at", { ascending: false });
 
     if (!error && data) {
@@ -37,6 +40,24 @@ export default function ThreadsPage() {
     fetchThreads();
   }, []);
 
+  // ★ 新規追加：取得したスレッドを「検索」と「ソート」で絞り込む処理
+  const filteredThreads = threads
+    .filter((t) => 
+      // タイトルか本文に検索キーワードが含まれているかチェック
+      t.title.includes(searchQuery) || (t.content && t.content.includes(searchQuery))
+    )
+    .sort((a, b) => {
+      // ソート処理
+      if (sortOrder === "latest") {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      } else {
+        // 人気順（レス数が多い順）
+        const aCount = a.thread_posts?.length || 0;
+        const bCount = b.thread_posts?.length || 0;
+        return bCount - aCount;
+      }
+    });
+
   return (
     <div className="space-y-6 relative pb-20">
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 rounded-2xl shadow-md text-white">
@@ -47,21 +68,32 @@ export default function ThreadsPage() {
           サークル募集、趣味の話、授業の愚痴など、自由に語り合う場所です！
         </p>
       </div>
-      {/* スマホ用検索・フィルタ */}
+
+      {/* 検索・フィルタエリア */}
       <div className="flex flex-col gap-2 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
           <input 
             type="text" 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)} // ★ 入力をStateに反映
             placeholder="スレッドを検索..." 
             className="w-full pl-9 pr-4 py-2 bg-white border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
           />
         </div>
         <div className="flex gap-2">
-          <button className="flex-1 py-2 px-3 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 flex items-center justify-center gap-1">
+          {/* ★ 最新順ボタン */}
+          <button 
+            onClick={() => setSortOrder("latest")}
+            className={`flex-1 py-2 px-3 border rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition ${sortOrder === "latest" ? "bg-blue-50 border-blue-200 text-blue-600" : "bg-white border-gray-200 text-gray-600"}`}
+          >
             <Filter size={14} /> 最新順
           </button>
-          <button className="flex-1 py-2 px-3 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 flex items-center justify-center gap-1">
+          {/* ★ 人気順ボタン */}
+          <button 
+            onClick={() => setSortOrder("popular")}
+            className={`flex-1 py-2 px-3 border rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition ${sortOrder === "popular" ? "bg-blue-50 border-blue-200 text-blue-600" : "bg-white border-gray-200 text-gray-600"}`}
+          >
             <TrendingUp size={14} /> 人気順
           </button>
         </div>
@@ -71,7 +103,8 @@ export default function ThreadsPage() {
         <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-500" size={40} /></div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {threads.map((thread) => (
+          {/* ★ threads.map ではなく filteredThreads.map に変更 */}
+          {filteredThreads.map((thread) => (
             <Link 
               key={thread.id} 
               href={`/threads/${thread.id}`}
@@ -99,9 +132,10 @@ export default function ThreadsPage() {
               </div>
             </Link>
           ))}
-          {threads.length === 0 && (
+          {/* ★ 検索結果がゼロの時のメッセージ */}
+          {filteredThreads.length === 0 && (
             <div className="col-span-full text-center py-20 text-gray-400 font-bold">
-              まだスレッドがありません。最初のスレッドを立ててみましょう！
+              見つかりませんでした。別のキーワードで検索してみてください。
             </div>
           )}
         </div>
