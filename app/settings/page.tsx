@@ -3,201 +3,233 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { Loader2, LogOut, User, Bell, Mail,Trash2 } from "lucide-react";
+import { 
+  User, Bug, MessageSquare, ExternalLink, LogOut, Loader2, 
+  ChevronRight, Bell, Lock, Trash2, Edit3, X, Check, Smile
+} from "lucide-react";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [currentUser, setCurrentUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [updating, setUpdating] = useState(false);
 
-  // フォーム用State
-  const [nickname, setNickname] = useState("");
-  const [course, setCourse] = useState("");
-  const [settings, setSettings] = useState<any>({ notifications: { onAnswer: true, onReaction: true } });
+  // 編集モーダル用State
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [newNickname, setNewNickname] = useState("");
+  const [newCourse, setNewCourse] = useState("");
+  const [newEmoji, setNewEmoji] = useState("");
+
+  const fetchProfile = async () => {
+    setLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+    
+    const defaultSettings = {
+      notifications: { onReaction: true, onAnswer: true, onReply: true }
+    };
+    
+    const currentProfile = { 
+      ...data, 
+      email: user.email,
+      settings: data.settings || defaultSettings 
+    };
+
+    setProfile(currentProfile);
+    setNewNickname(data.nickname || "");
+    setNewCourse(data.course || "");
+    setNewEmoji(data.avatar_emoji || "");
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push("/login");
-        return;
-      }
-      setCurrentUser(user);
-
-      const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-      if (data) {
-        setProfile(data);
-        setNickname(data.nickname || "");
-        setCourse(data.course || "");
-        if (data.settings) setSettings(data.settings);
-      }
-      setLoading(false);
-    };
-    fetchUser();
+    fetchProfile();
   }, [router]);
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    
-    // プロフィール情報と通知設定をまとめて保存
-    const { error } = await supabase.from("profiles").update({
-      nickname,
-      course,
-      settings
-    }).eq("id", currentUser.id);
-
-    if (error) alert("エラー: " + error.message);
-    else alert("設定を保存しました。");
-    
-    setSaving(false);
-  };
-
-  const handleDeleteAccount = async () => {
-    const confirmDelete = confirm("本当に退会しますか？\n投稿した質問や回答などのデータはすべて削除され、元に戻せません。");
-    if (!confirmDelete) return;
-
-    setSaving(true);
-    // 1. プロフィールデータの削除（SQLの cascade 設定により紐づく投稿も消える設定の場合）
-    const { error } = await supabase.from("profiles").delete().eq("id", currentUser.id);
+  // プロフィール一括更新
+  const handleUpdateProfile = async () => {
+    setUpdating(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ 
+        nickname: newNickname,
+        course: newCourse,
+        avatar_emoji: newEmoji 
+      })
+      .eq("id", profile.id);
 
     if (error) {
-      alert("退会処理中にエラーが発生しました: " + error.message);
-      setSaving(false);
+      alert("更新に失敗しました");
     } else {
-      // 2. ログアウトさせてログイン画面へ
-      await supabase.auth.signOut();
-      alert("退会処理が完了しました。ご利用ありがとうございました。");
-      router.push("/login");
+      setProfile({ 
+        ...profile, 
+        nickname: newNickname, 
+        course: newCourse, 
+        avatar_emoji: newEmoji 
+      });
+      setIsEditModalOpen(false);
     }
+    setUpdating(false);
   };
 
-  const handleLogout = async () => {
-    if (!confirm("ログアウトしますか？")) return;
-    await supabase.auth.signOut();
-    router.push("/login");
+  const toggleNotification = async (key: string) => {
+    const newSettings = { ...profile.settings };
+    newSettings.notifications[key] = !newSettings.notifications[key];
+    await supabase.from("profiles").update({ settings: newSettings }).eq("id", profile.id);
+    setProfile({ ...profile, settings: newSettings });
   };
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-gray-400" /></div>;
+  if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-500" size={40} /></div>;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-        <h1 className="text-2xl font-black text-gray-800 tracking-tight">アカウント設定</h1>
-        <button 
-          onClick={handleLogout}
-          className="flex items-center gap-2 text-sm text-red-500 font-bold hover:bg-red-50 px-4 py-2 rounded-lg transition"
-        >
-          <LogOut size={16} /> ログアウト
+    <div className="max-w-2xl mx-auto pb-32 space-y-6">
+      <div className="flex items-center gap-2 p-4 pb-0">
+        <User className="text-gray-800" size={24} />
+        <h1 className="text-xl font-black text-gray-800">アカウント設定</h1>
+      </div>
+
+      {/* プロフィール表示セクション */}
+      <section className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm mx-4 md:mx-0">
+        <div className="flex justify-between items-start mb-6">
+          <div className="flex items-center gap-4">
+            {/* アイコン表示：絵文字があれば絵文字、なければ名前の1文字目 */}
+            <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-3xl shadow-inner border border-blue-100">
+              {profile?.avatar_emoji ? profile.avatar_emoji : (profile?.nickname?.charAt(0) || "？")}
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">{profile?.nickname}</h2>
+              <p className="text-sm text-gray-500">{profile?.email}</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => setIsEditModalOpen(true)} 
+            className="flex items-center gap-1 px-3 py-2 bg-gray-50 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all font-bold text-xs"
+          >
+            <Edit3 size={16} /> 編集
+          </button>
+        </div>
+
+        <div className="bg-gray-50 p-4 rounded-xl text-sm font-medium text-gray-600 space-y-3">
+          <div className="flex justify-between items-center">
+            <span>学籍番号</span>
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-gray-900">{profile?.student_id}</span>
+              <a href="https://forms.gle/..." target="_blank" className="text-[10px] bg-white px-2 py-1 rounded border text-blue-500 hover:bg-blue-50">変更申請</a>
+            </div>
+          </div>
+          <div className="flex justify-between items-center">
+            <span>学科・コース</span>
+            <span className="font-bold text-gray-900">{profile?.course}</span>
+          </div>
+        </div>
+      </section>
+
+      {/* 通知設定セクション（復活） */}
+      <section className="bg-white border border-gray-100 rounded-2xl shadow-sm mx-4 md:mx-0 p-6 space-y-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Bell size={18} className="text-blue-500" />
+          <h3 className="font-bold text-gray-800">通知設定</h3>
+        </div>
+        {["onReaction", "onAnswer", "onReply"].map((key) => (
+          <div key={key} className="flex justify-between items-center">
+            <span className="text-sm text-gray-700 font-medium">
+              {key === "onReaction" ? "リアクションがついた時" : key === "onAnswer" ? "回答がついた時" : "返信がついた時"}
+            </span>
+            <button 
+              onClick={() => toggleNotification(key)}
+              className={`w-12 h-6 rounded-full relative transition-colors ${profile.settings.notifications[key] ? "bg-blue-500" : "bg-gray-200"}`}
+            >
+              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${profile.settings.notifications[key] ? "left-7" : "left-1"}`} />
+            </button>
+          </div>
+        ))}
+      </section>
+
+      {/* 外部リンク・パスワード変更など */}
+      <section className="bg-white border border-gray-100 rounded-2xl shadow-sm mx-4 md:mx-0 overflow-hidden divide-y divide-gray-100 text-sm font-bold">
+        <a href="https://forms.gle/GwDNMrTy6i1L3XSy6" target="_blank" className="flex items-center justify-between p-4 hover:bg-gray-50 group">
+          <div className="flex items-center gap-3 text-gray-700"><Bug size={18} className="text-red-500" />不具合報告</div>
+          <ExternalLink size={14} className="text-gray-300 group-hover:text-blue-500" />
+        </a>
+        <a href="https://forms.gle/rJMGVW6i8A1iY6TH8" target="_blank" className="flex items-center justify-between p-4 hover:bg-gray-50 group">
+          <div className="flex items-center gap-3 text-gray-700"><MessageSquare size={18} className="text-blue-500" />感想・意見</div>
+          <ExternalLink size={14} className="text-gray-300 group-hover:text-blue-500" />
+        </a>
+        <button onClick={() => alert("パスワード変更メールを送信します")} className="w-full flex items-center justify-between p-4 hover:bg-gray-50 text-left">
+          <div className="flex items-center gap-3 text-gray-700"><Lock size={18} className="text-gray-400" />パスワード変更</div>
+          <ChevronRight size={14} className="text-gray-300" />
+        </button>
+      </section>
+
+      {/* 危険ゾーン */}
+      <div className="px-4 md:px-0 space-y-3 pt-4 pb-10">
+        <button onClick={() => { if(confirm("ログアウトしますか？")) supabase.auth.signOut().then(() => router.push("/")) }} className="w-full bg-white border-2 border-gray-100 text-gray-500 font-bold py-3 rounded-xl hover:bg-gray-50 transition flex justify-center items-center gap-2">
+          <LogOut size={18} /> ログアウト
+        </button>
+        <button onClick={() => alert("退会申請を受け付けます")} className="w-full bg-red-50 text-red-500 font-bold py-3 rounded-xl hover:bg-red-100 transition flex justify-center items-center gap-2">
+          <Trash2 size={18} /> 掲示板を退会する
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-        <form onSubmit={handleUpdateProfile} className="divide-y divide-gray-100">
-          
-          {/* 基本情報セクション */}
-          <div className="p-6 space-y-4">
-            <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2 mb-4">
-              <User size={18} className="text-gray-400"/> プロフィール情報
-            </h2>
+      {/* 編集ポップアップ（一括修正） */}
+      {isEditModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-6 animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-black text-gray-800">プロフィール編集</h2>
+              <button onClick={() => setIsEditModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full transition"><X size={20} className="text-gray-400" /></button>
+            </div>
             
-            <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1">メールアドレス</label>
-              <input type="email" disabled value={currentUser?.email} className="w-full p-2.5 bg-gray-100 border border-gray-200 rounded-lg text-gray-500 text-sm" />
-              <p className="mt-2 text-[11px] text-gray-400 leading-relaxed">
-                ※ 原則としてメールアドレスの変更はできません。変更が必要な場合はアカウントを作り直すか、
-                <a href="https://docs.google.com/forms/..." target="_blank" className="text-blue-500 underline">こちらのフォーム</a> 
-                よりお問い合わせください。
-              </p>
-            </div>
+            <div className="space-y-5">
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">アイコン設定：好きな絵文字 (Icon)</label>
+                <div className="relative">
+                  <Smile className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
+                  <input 
+                    type="text" 
+                    value={newEmoji} 
+                    onChange={(e) => setNewEmoji(e.target.value)}
+                    placeholder="🔥 や 🐣 など"
+                    className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-gray-800"
+                  />
+                </div>
+              </div>
 
-            <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1">学籍番号（変更不可）</label>
-              <input type="text" disabled value={profile?.student_id} className="w-full p-2.5 bg-gray-100 border border-gray-200 rounded-lg text-gray-500 text-sm" />
-            </div>
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">ニックネーム</label>
+                <input 
+                  type="text" 
+                  value={newNickname} 
+                  onChange={(e) => setNewNickname(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-gray-800"
+                />
+              </div>
 
-            <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1">ニックネーム</label>
-              <input 
-                type="text" 
-                value={nickname} 
-                onChange={(e) => setNickname(e.target.value)}
-                className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800 text-sm" 
-              />
-            </div>
+              <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">学科・コース</label>
+                <input 
+                  type="text" 
+                  value={newCourse} 
+                  onChange={(e) => setNewCourse(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-gray-800"
+                />
+              </div>
 
-            <div>
-              <label className="block text-xs font-bold text-gray-500 mb-1">履修コース/専攻</label>
-              <input 
-                type="text" 
-                value={course} 
-                onChange={(e) => setCourse(e.target.value)}
-                className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800 text-sm" 
-              />
+              <button 
+                onClick={handleUpdateProfile}
+                disabled={updating}
+                className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-blue-200 disabled:opacity-50"
+              >
+                {updating ? <Loader2 className="animate-spin" size={20} /> : <><Check size={20}/> 変更を保存する</>}
+              </button>
             </div>
           </div>
-
-          {/* 通知設定セクション */}
-          <div className="p-6 space-y-4 bg-gray-50/50">
-            <h2 className="text-sm font-bold text-gray-800 flex items-center gap-2 mb-4">
-              <Bell size={18} className="text-gray-400"/> 通知設定
-            </h2>
-            
-            <label className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl cursor-pointer hover:border-gray-300 transition shadow-sm">
-              <span className="text-sm font-bold text-gray-700">新しい回答がついた時</span>
-              <input 
-                type="checkbox" 
-                checked={settings.notifications?.onAnswer ?? true}
-                onChange={(e) => setSettings({ ...settings, notifications: { ...settings.notifications, onAnswer: e.target.checked } })}
-                className="w-5 h-5 accent-gray-900" 
-              />
-            </label>
-
-            {/* ★ 追加：返信通知の設定 */}
-            <label className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl cursor-pointer hover:border-gray-300 transition shadow-sm">
-              <span className="text-sm font-bold text-gray-700">自分の回答に返信がきた時</span>
-              <input 
-                type="checkbox" 
-                checked={settings.notifications?.onReply ?? true}
-                onChange={(e) => setSettings({ ...settings, notifications: { ...settings.notifications, onReply: e.target.checked } })}
-                className="w-5 h-5 accent-gray-900" 
-              />
-            </label>
-
-            <label className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl cursor-pointer hover:border-gray-300 transition shadow-sm">
-              <span className="text-sm font-bold text-gray-700">リアクションされた時</span>
-              <input 
-                type="checkbox" 
-                checked={settings.notifications?.onReaction ?? true}
-                onChange={(e) => setSettings({ ...settings, notifications: { ...settings.notifications, onReaction: e.target.checked } })}
-                className="w-5 h-5 accent-gray-900" 
-              />
-            </label>
-          </div>
-
-          <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end">
-            <button 
-              type="submit" 
-              disabled={saving}
-              className="bg-gray-900 text-white px-8 py-2.5 rounded-xl font-bold hover:bg-gray-800 transition shadow-lg disabled:opacity-50"
-            >
-              {saving ? "保存中..." : "設定を保存する"}
-            </button>
-          </div>
-          <div className="p-6 bg-red-50 border-t border-red-100 flex flex-col items-center gap-3">
-            <p className="text-xs text-red-600 font-bold">一度退会するとデータは復旧できません</p>
-            <button 
-              type="button"
-              onClick={handleDeleteAccount}
-              className="flex items-center gap-2 px-8 py-3 text-sm font-bold text-gray-700 bg-red-200 hover:bg-red-500 rounded-xl transition-all shadow-md hover:shadow-lg"
-            >
-              <Trash2 size={18} /> 掲示板から退会する
-            </button>
-          </div>
-        </form>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
