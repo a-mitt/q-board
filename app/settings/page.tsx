@@ -118,7 +118,7 @@ export default function SettingsPage() {
             <span>学籍番号</span>
             <div className="flex items-center gap-2">
               <span className="font-bold text-gray-900">{profile?.student_id}</span>
-              <a href="https://forms.gle/..." target="_blank" className="text-[10px] bg-white px-2 py-1 rounded border text-blue-500 hover:bg-blue-50">変更申請</a>
+              <a href="https://forms.gle/wiSYmpgZ6VeVXDZU6" target="_blank" className="text-[10px] bg-white px-2 py-1 rounded border text-blue-500 hover:bg-blue-50">変更申請</a>
             </div>
           </div>
           <div className="flex justify-between items-center">
