@@ -35,6 +35,10 @@ export default function Header() {
 
         {/* 右側：アイコン群 */}
         <div className="flex items-center gap-4 relative">
+        {/* ★ 追加：利用期限のメッセージ（PC表示でヘッダーの上部にひっそり配置、スマホでは消すか小さく） */}
+          <span className="hidden md:block absolute -top-3 right-0 text-[10px] text-gray-400 font-medium tracking-wider">
+            ※この掲示板の利用期限は5月末までを予定しています
+          </span>
         {/* ★ここを修正！ button から Link に変えます */}
         {isModerator && (
           <Link 

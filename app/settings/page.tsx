@@ -5,14 +5,16 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { 
   User, Bug, MessageSquare, ExternalLink, LogOut, Loader2, 
-  ChevronRight, Bell, Lock, Trash2, Edit3, X, Check, Smile
+  ChevronRight, Bell, Lock, Trash2, Edit3, X, Check, Smile,Sparkles
 } from "lucide-react";
+import TutorialModal from "@/components/board/TutorialModal";
 
 export default function SettingsPage() {
   const router = useRouter();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [isTutorialOpen, setIsTutorialOpen] = useState(false);
 
   // 編集モーダル用State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -149,6 +151,23 @@ export default function SettingsPage() {
         ))}
       </section>
 
+      {/* アプリの使い方案内 */}
+      <section className="bg-white border border-gray-100 rounded-2xl shadow-sm mx-4 md:mx-0 p-6">
+        <div className="flex items-center gap-2 mb-2">
+          <Sparkles size={18} className="text-yellow-500" />
+          <h3 className="font-bold text-gray-800">アプリの使い方</h3>
+        </div>
+        <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+          質問掲示板と交流スレッドの違いや、匿名機能の使い方などを確認できます。
+        </p>
+        <button 
+          onClick={() => setIsTutorialOpen(true)}
+          className="w-full bg-blue-50 text-blue-600 font-bold py-3 rounded-xl hover:bg-blue-100 transition text-sm"
+        >
+          チュートリアルをもう一度見る
+        </button>
+      </section>
+
       {/* 外部リンク・パスワード変更など */}
       <section className="bg-white border border-gray-100 rounded-2xl shadow-sm mx-4 md:mx-0 overflow-hidden divide-y divide-gray-100 text-sm font-bold">
         <a href="https://forms.gle/GwDNMrTy6i1L3XSy6" target="_blank" className="flex items-center justify-between p-4 hover:bg-gray-50 group">
@@ -226,10 +245,15 @@ export default function SettingsPage() {
               >
                 {updating ? <Loader2 className="animate-spin" size={20} /> : <><Check size={20}/> 変更を保存する</>}
               </button>
+              
             </div>
           </div>
         </div>
       )}
+      <TutorialModal 
+                isOpen={isTutorialOpen} 
+                onClose={() => setIsTutorialOpen(false)} 
+              />
     </div>
   );
 }
