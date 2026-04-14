@@ -15,6 +15,7 @@ export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
+  const [searchQuery, setSearchQuery] = useState(""); // ★追加
 
   // 未登録ユーザーを弾く ＆ チュートリアル表示判定
   useEffect(() => {
@@ -78,6 +79,14 @@ export default function Home() {
     fetchQuestions();
   }, []);
 
+  // ★追加：検索キーワードで質問を絞り込む
+  const filteredQuestions = questions.filter((q) => {
+    if (!searchQuery) return true;
+    const matchContent = q.content.includes(searchQuery);
+    const matchTag = q.question_tags?.some((qt: any) => qt.tags?.name?.includes(searchQuery.replace(/[#＃]/g, "")));
+    return matchContent || matchTag;
+  });
+
   return (
     <div className="space-y-8 relative">
       <section className="bg-white px-6 py-10 rounded-2xl shadow-sm border border-gray-100 text-center flex flex-col items-center justify-center">
@@ -98,14 +107,22 @@ export default function Home() {
       </section>
 
       <section>
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <h2 className="text-xl font-bold text-gray-700">最新の質問</h2>
-          <button 
-            onClick={fetchQuestions} 
-            className="text-sm text-blue-600 hover:underline"
-          >
-            更新する
-          </button>
+          
+          {/* ★追加：検索窓 */}
+          <div className="flex items-center gap-2 w-full md:w-auto">
+            <input 
+              type="text" 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="質問やタグを検索..." 
+              className="w-full md:w-64 px-4 py-2 bg-white border border-gray-200 rounded-full text-sm outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+            />
+            <button onClick={fetchQuestions} className="text-sm text-blue-600 hover:underline shrink-0 font-bold">
+              更新する
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -114,20 +131,24 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {questions.map((q) => (
+            {/* ★ questions ではなく filteredQuestions をマップする */}
+            {filteredQuestions.map((q) => (
               <QuestionGridItem
                 key={q.id}
                 id={q.id}
                 question={q.content}
                 latestAnswer={q.latestAnswer}
-                tags={[]}
+                tags={q.question_tags?.map((qt: any) => qt.tags?.name).filter(Boolean) || []} // ★タグを渡すように修正
               />
             ))}
           </div>
         )}
 
-        {!loading && questions.length === 0 && (
-          <p className="text-center text-gray-400 py-20">まだ質問がありません。最初の質問を投稿しよう！</p>
+        {/* ★ 検索結果がゼロの時のメッセージ */}
+        {!loading && filteredQuestions.length === 0 && (
+          <p className="text-center text-gray-400 py-20 font-bold">
+            {searchQuery ? "見つかりませんでした。別のキーワードを試してください。" : "まだ質問がありません。最初の質問を投稿しよう！"}
+          </p>
         )}
       </section>
 

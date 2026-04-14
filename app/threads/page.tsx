@@ -25,7 +25,8 @@ export default function ThreadsPage() {
       .select(`
         *,
         profiles (nickname),
-        thread_posts (id)
+        thread_posts (id),
+        thread_tags(tags(name)) // ★これを追加
       `)
       .or('is_hidden.eq.false,is_hidden.is.null') // 非表示設定の対応
       .order("created_at", { ascending: false });
@@ -41,11 +42,14 @@ export default function ThreadsPage() {
   }, []);
 
   // ★ 新規追加：取得したスレッドを「検索」と「ソート」で絞り込む処理
+  // ★ 修正：タイトル、本文に加えて、タグ名も検索対象にする
   const filteredThreads = threads
-    .filter((t) => 
-      // タイトルか本文に検索キーワードが含まれているかチェック
-      t.title.includes(searchQuery) || (t.content && t.content.includes(searchQuery))
-    )
+    .filter((t) => {
+      const matchText = t.title.includes(searchQuery) || (t.content && t.content.includes(searchQuery));
+      // タグの中に検索キーワードが含まれているかチェック
+      const matchTag = t.thread_tags?.some((tt: any) => tt.tags?.name?.includes(searchQuery.replace(/[#＃]/g, "")));
+      return matchText || matchTag;
+    })
     .sort((a, b) => {
       // ソート処理
       if (sortOrder === "latest") {
