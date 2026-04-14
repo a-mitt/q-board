@@ -44,7 +44,11 @@ export default function PostModal({ isOpen, onClose, onSuccess }: Props) {
     setLoading(true);
 
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return alert("ログインしてください");
+    if (!user) {
+      alert("ログインしてください");
+      setLoading(false); // ★ここを追加！ アラートを出した後にロード状態をOFFに戻す！
+      return;
+    }
 
     // 1. 質問を保存
     const { data: qData, error: qError } = await supabase
