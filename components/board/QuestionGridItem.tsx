@@ -5,6 +5,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { Megaphone, ShieldAlert } from "lucide-react"; // アイコンをインポート
 
+
 type Props = {
   id: string;
   question: string;
@@ -60,6 +61,7 @@ export default function QuestionGridItem({ id, question, latestAnswer, tags, isA
       }
     }
   };
+  
 
   return (
     <div className="relative group">

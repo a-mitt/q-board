@@ -20,6 +20,9 @@ export default function Header() {
             <br className="md:hidden" />
             <span className="md:ml-1">質問掲示板</span>
           </Link>
+          <span className="hidden md:block right-0 text-[10px] text-gray-400 font-medium tracking-wider">
+            ※この掲示板の利用期限は5月末までを予定しています
+          </span>
           
           <nav className="hidden md:flex items-center gap-4 text-sm font-medium text-gray-600">
             <Link href="/" className="flex items-center gap-1 hover:text-blue-600 transition">
@@ -36,9 +39,7 @@ export default function Header() {
         {/* 右側：アイコン群 */}
         <div className="flex items-center gap-4 relative">
         {/* ★ 追加：利用期限のメッセージ（PC表示でヘッダーの上部にひっそり配置、スマホでは消すか小さく） */}
-          <span className="hidden md:block absolute -top-3 right-0 text-[10px] text-gray-400 font-medium tracking-wider">
-            ※この掲示板の利用期限は5月末までを予定しています
-          </span>
+          
         {/* ★ここを修正！ button から Link に変えます */}
         {isModerator && (
           <Link 

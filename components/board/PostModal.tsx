@@ -15,6 +15,7 @@ export default function PostModal({ isOpen, onClose, onSuccess }: Props) {
   const [tagList, setTagList] = useState<string[]>([]); // タグを配列で管理
   const [isAnonymous, setIsAnonymous] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [showGrade, setShowGrade] = useState(true);
 
   if (!isOpen) return null;
 
@@ -47,9 +48,16 @@ export default function PostModal({ isOpen, onClose, onSuccess }: Props) {
 
     // 1. 質問を保存
     const { data: qData, error: qError } = await supabase
-      .from("questions")
-      .insert({ user_id: user.id, title: content.slice(0, 20), content, is_anonymous: isAnonymous, is_hidden: false })
-      .select().single();
+    .from("questions")
+    .insert({ 
+      user_id: user.id, 
+      title: content.slice(0, 20), 
+      content, 
+      is_anonymous: isAnonymous,
+      show_grade: showGrade, // ★追加
+      is_hidden: false 
+    })
+    .select().single();
 
     if (qError) {
       alert(qError.message);
@@ -143,6 +151,23 @@ export default function PostModal({ isOpen, onClose, onSuccess }: Props) {
               {isAnonymous ? <Lock size={16} /> : <Globe size={16} />}
               {isAnonymous ? "匿名で投稿" : "記名で投稿"}
             </button>
+            <div className="flex gap-4 items-center">
+            <button type="button" onClick={() => setIsAnonymous(!isAnonymous)} className="...">
+              {isAnonymous ? <Lock size={16} /> : <Globe size={16} />}
+              {isAnonymous ? "匿名投稿" : "記名投稿"}
+            </button>
+            {/* ★ 学年表示スイッチを追加 */}
+              <button 
+                type="button" 
+                onClick={() => setShowGrade(!showGrade)} 
+                className={`flex items-center gap-2 text-sm font-bold transition ${showGrade ? "text-blue-600" : "text-gray-400"}`}
+              >
+                <div className={`w-4 h-4 border-2 rounded flex items-center justify-center ${showGrade ? "border-blue-600 bg-blue-600" : "border-gray-300"}`}>
+                  {showGrade && <Check size={12} className="text-white" />}
+                </div>
+                学年を表示
+              </button>
+            </div>
             <button disabled={loading} className="bg-blue-600 text-white px-6 py-2 rounded-full font-bold">
               {loading ? "投稿中..." : "質問する"}
             </button>

@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { 
   User, Bug, MessageSquare, ExternalLink, LogOut, Loader2, 
-  ChevronRight, Bell, Lock, Trash2, Edit3, X, Check, Smile,Sparkles
+  ChevronRight, Bell, Lock, Trash2, Edit3, X, Check, Smile, Sparkles
 } from "lucide-react";
 import TutorialModal from "@/components/board/TutorialModal";
 
@@ -21,6 +21,7 @@ export default function SettingsPage() {
   const [newNickname, setNewNickname] = useState("");
   const [newCourse, setNewCourse] = useState("");
   const [newEmoji, setNewEmoji] = useState("");
+  const [newGrade, setNewGrade] = useState(""); // 1. 学年用のStateを追加
 
   const fetchProfile = async () => {
     setLoading(true);
@@ -42,9 +43,11 @@ export default function SettingsPage() {
     };
 
     setProfile(currentProfile);
+    // 初期値をセット
     setNewNickname(data.nickname || "");
     setNewCourse(data.course || "");
     setNewEmoji(data.avatar_emoji || "");
+    setNewGrade(data.grade || ""); // 2. 学年の初期値をセット
     setLoading(false);
   };
 
@@ -55,12 +58,14 @@ export default function SettingsPage() {
   // プロフィール一括更新
   const handleUpdateProfile = async () => {
     setUpdating(true);
+    // 3. 学年も含めてまとめて更新
     const { error } = await supabase
       .from("profiles")
       .update({ 
         nickname: newNickname,
         course: newCourse,
-        avatar_emoji: newEmoji 
+        avatar_emoji: newEmoji,
+        grade: newGrade // 追加
       })
       .eq("id", profile.id);
 
@@ -71,7 +76,8 @@ export default function SettingsPage() {
         ...profile, 
         nickname: newNickname, 
         course: newCourse, 
-        avatar_emoji: newEmoji 
+        avatar_emoji: newEmoji,
+        grade: newGrade // 画面の表示用も更新
       });
       setIsEditModalOpen(false);
     }
@@ -122,6 +128,10 @@ export default function SettingsPage() {
               <span className="font-bold text-gray-900">{profile?.student_id}</span>
               <a href="https://forms.gle/wiSYmpgZ6VeVXDZU6" target="_blank" className="text-[10px] bg-white px-2 py-1 rounded border text-blue-500 hover:bg-blue-50">変更申請</a>
             </div>
+          </div>
+          <div className="flex justify-between items-center">
+            <span>学年</span>
+            <span className="font-bold text-gray-900">{profile?.grade || "未設定"}</span>
           </div>
           <div className="flex justify-between items-center">
             <span>学科・コース</span>
@@ -205,6 +215,20 @@ export default function SettingsPage() {
             
             <div className="space-y-5">
               <div>
+                <label className="block text-[10px] font-black text-gray-400 uppercase mb-1.5 ml-1">学年（任意）</label>
+                <select 
+                  value={newGrade} 
+                  onChange={(e) => setNewGrade(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-gray-800"
+                >
+                  <option value="">未設定</option>
+                  <option value="1年">1年</option>
+                  <option value="2年">2年</option>
+                  <option value="3年">3年</option>
+                  <option value="4年">4年</option>
+                </select>
+              </div>
+              <div>
                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5 ml-1">アイコン設定：好きな絵文字 (Icon)</label>
                 <div className="relative">
                   <Smile className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
@@ -251,9 +275,9 @@ export default function SettingsPage() {
         </div>
       )}
       <TutorialModal 
-                isOpen={isTutorialOpen} 
-                onClose={() => setIsTutorialOpen(false)} 
-              />
+        isOpen={isTutorialOpen} 
+        onClose={() => setIsTutorialOpen(false)} 
+      />
     </div>
   );
 }
