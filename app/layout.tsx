@@ -10,7 +10,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 // ★修正：iPhone用の設定を追加
 export const metadata: Metadata = {
-  title: "先輩に質問！　　質問掲示板",
+  title: "先輩に質問！質問掲示板",
   description: "学内の学生交流・質問掲示板",
   appleWebApp: {
     capable: true,

@@ -268,7 +268,7 @@ export default function ThreadDetailPage({ params }: { params: Promise<{ id: str
                   })
                 )}
               </div>
-              <ReactionButtons targetId={post.id} type="answer" />
+              <ReactionButtons targetId={post.id} type="thread_post" />
             </div>
           );
         })}

@@ -45,7 +45,6 @@ export default function NotificationBell() {
     setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
   };
 
-  // ★追加：過去のテスト通知（ゴミデータ）を全部消す機能
   const clearNotifications = async () => {
     if (!confirm("通知履歴をすべて削除しますか？")) return;
     const { data: { user } } = await supabase.auth.getUser();
@@ -79,13 +78,15 @@ export default function NotificationBell() {
 
       {isOpen && (
         <>
+          {/* 背景の透明なクリック判定（ポップアップ外を押したら閉じる用） */}
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
           
-          <div className="absolute right-[-10px] sm:right-0 mt-2 w-[90vw] sm:w-80 max-w-sm bg-white shadow-xl rounded-xl border border-gray-200 z-50">
-            {/* ★修正: 「お知らせ」の文字色を text-black にしてクッキリ表示 */}
+          {/* ★修正ポイント：右端固定(right-0) と スマホ幅制限(w-[85vw]) を追加！ */}
+          <div className="absolute right-0 mt-2 w-[85vw] sm:w-80 max-w-sm bg-white shadow-xl rounded-xl border border-gray-200 z-50 origin-top-right overflow-hidden">
+            
+            {/* ヘッダー部分 */}
             <div className="p-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
               <span className="text-sm font-black text-black">お知らせ</span>
-              {/* ゴミ箱ボタン */}
               {notifications.length > 0 && (
                 <button onClick={clearNotifications} className="text-gray-400 hover:text-red-500 transition">
                   <Trash2 size={14} />
@@ -93,6 +94,7 @@ export default function NotificationBell() {
               )}
             </div>
             
+            {/* 通知リスト部分 */}
             <div className="max-h-80 overflow-y-auto divide-y divide-gray-100">
               {notifications.length === 0 ? (
                 <div className="p-6 text-center text-xs font-bold text-gray-400">通知はありません</div>
@@ -105,11 +107,10 @@ export default function NotificationBell() {
                     className={`block p-4 transition-colors hover:bg-gray-50 ${!n.is_read ? 'bg-blue-50/20' : ''}`}
                   >
                     <div className="flex gap-3">
-                      <div className="mt-0.5 bg-white p-1.5 rounded-full shadow-sm border border-gray-200 h-fit">
+                      <div className="mt-0.5 bg-white p-1.5 rounded-full shadow-sm border border-gray-200 h-fit shrink-0">
                         {getIcon(n.type)}
                       </div>
                       <div className="space-y-1">
-                        {/* ★修正: 通知文の文字色もハッキリさせる */}
                         <p className={`text-sm ${!n.is_read ? 'font-black text-gray-900' : 'font-medium text-gray-700'}`}>
                           {n.message}
                         </p>
@@ -122,6 +123,18 @@ export default function NotificationBell() {
                 ))
               )}
             </div>
+
+            {/* ★おまけ：「すべて見る」ボタンを下につけて、さっきの通知ページにも行けるようにしました */}
+            <div className="border-t border-gray-100 bg-gray-50 p-2">
+              <Link 
+                href="/notifications" 
+                onClick={() => setIsOpen(false)}
+                className="block w-full text-center text-xs font-bold text-blue-600 hover:text-blue-700 py-2 rounded-lg hover:bg-blue-100/50 transition-colors"
+              >
+                すべての通知を見る
+              </Link>
+            </div>
+
           </div>
         </>
       )}

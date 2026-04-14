@@ -141,26 +141,38 @@ export default function ReactionButtons({ targetId, type }: Props) {
     const column = type === "question" ? "question_id" : type === "answer" ? "answer_id" : "thread_post_id";
     const isMine = myReactions.includes(reactionId);
 
+    // 先に画面の見た目だけを素早く切り替える（楽観的UI）
     setCounts(prev => ({ ...prev, [reactionId]: (prev[reactionId] || 0) + (isMine ? -1 : 1) }));
     setMyReactions(prev => isMine ? prev.filter(e => e !== reactionId) : [...prev, reactionId]);
     setIsPopoverOpen(false);
 
     if (isMine) {
-      await supabase.from("reactions").delete().match({ [column]: targetId, user_id: user.id, emoji: reactionId });
+      // いいね解除
+      const { error } = await supabase.from("reactions").delete().match({ [column]: targetId, user_id: user.id, emoji: reactionId });
+      if (error) console.error("Reaction delete error:", error);
     } else {
-      await supabase.from("reactions").insert({ [column]: targetId, user_id: user.id, emoji: reactionId });
+      // いいね追加
+      const { error: insertError } = await supabase.from("reactions").insert({ [column]: targetId, user_id: user.id, emoji: reactionId });
 
-      let tableName = type === "question" ? "questions" : type === "answer" ? "answers" : "thread_posts";
-      const { data: targetData } = await supabase.from(tableName).select("user_id").eq("id", targetId).single();
+      // 追加成功時のみ通知の処理を行う（409エラー等を防ぐ）
+      if (!insertError) {
+        let tableName = type === "question" ? "questions" : type === "answer" ? "answers" : "thread_posts";
+        
+        // ★ 修正ポイント： .single() を .maybeSingle() に変更
+        const { data: targetData } = await supabase.from(tableName).select("user_id").eq("id", targetId).maybeSingle();
 
-      if (targetData?.user_id) {
-        const reactionObj = ALL_REACTIONS.find(r => r.id === reactionId);
-        await sendNotification(
-          targetData.user_id,
-          "reaction",
-          `あなたの投稿に「${reactionObj?.label || 'リアクション'}」がつきました`,
-          "#"
-        );
+        // ★ 修正ポイント：自分へのいいねには通知を送らない設定を追加
+        if (targetData?.user_id && targetData.user_id !== user.id) {
+          const reactionObj = ALL_REACTIONS.find(r => r.id === reactionId);
+          await sendNotification(
+            targetData.user_id,
+            "reaction",
+            `あなたの投稿に「${reactionObj?.label || 'リアクション'}」がつきました`,
+            "#" 
+          );
+        }
+      } else {
+        console.error("Reaction insert error:", insertError);
       }
     }
   };

@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import { 
   User, Bug, MessageSquare, ExternalLink, LogOut, Loader2, 
-  ChevronRight, Bell, Lock, Trash2, Edit3, X, Check, Smile, Sparkles
+  ChevronRight, Bell, Lock, Trash2, Edit3, X, Check, Smile, Sparkles, AlertCircle
 } from "lucide-react";
 import TutorialModal from "@/components/board/TutorialModal";
 
@@ -21,7 +21,7 @@ export default function SettingsPage() {
   const [newNickname, setNewNickname] = useState("");
   const [newCourse, setNewCourse] = useState("");
   const [newEmoji, setNewEmoji] = useState("");
-  const [newGrade, setNewGrade] = useState(""); // 1. 学年用のStateを追加
+  const [newGrade, setNewGrade] = useState("");
 
   const fetchProfile = async () => {
     setLoading(true);
@@ -43,11 +43,10 @@ export default function SettingsPage() {
     };
 
     setProfile(currentProfile);
-    // 初期値をセット
     setNewNickname(data.nickname || "");
     setNewCourse(data.course || "");
     setNewEmoji(data.avatar_emoji || "");
-    setNewGrade(data.grade || ""); // 2. 学年の初期値をセット
+    setNewGrade(data.grade || "");
     setLoading(false);
   };
 
@@ -55,17 +54,15 @@ export default function SettingsPage() {
     fetchProfile();
   }, [router]);
 
-  // プロフィール一括更新
   const handleUpdateProfile = async () => {
     setUpdating(true);
-    // 3. 学年も含めてまとめて更新
     const { error } = await supabase
       .from("profiles")
       .update({ 
         nickname: newNickname,
         course: newCourse,
         avatar_emoji: newEmoji,
-        grade: newGrade // 追加
+        grade: newGrade 
       })
       .eq("id", profile.id);
 
@@ -77,7 +74,7 @@ export default function SettingsPage() {
         nickname: newNickname, 
         course: newCourse, 
         avatar_emoji: newEmoji,
-        grade: newGrade // 画面の表示用も更新
+        grade: newGrade
       });
       setIsEditModalOpen(false);
     }
@@ -100,11 +97,9 @@ export default function SettingsPage() {
         <h1 className="text-xl font-black text-gray-800">アカウント設定</h1>
       </div>
 
-      {/* プロフィール表示セクション */}
       <section className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm mx-4 md:mx-0">
         <div className="flex justify-between items-start mb-6">
           <div className="flex items-center gap-4">
-            {/* アイコン表示：絵文字があれば絵文字、なければ名前の1文字目 */}
             <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-3xl shadow-inner border border-blue-100">
               {profile?.avatar_emoji ? profile.avatar_emoji : (profile?.nickname?.charAt(0) || "？")}
             </div>
@@ -129,10 +124,19 @@ export default function SettingsPage() {
               <a href="https://forms.gle/wiSYmpgZ6VeVXDZU6" target="_blank" className="text-[10px] bg-white px-2 py-1 rounded border text-blue-500 hover:bg-blue-50">変更申請</a>
             </div>
           </div>
+          
+          {/* ★ ここを修正：学年が未設定なら赤くする */}
           <div className="flex justify-between items-center">
             <span>学年</span>
-            <span className="font-bold text-gray-900">{profile?.grade || "未設定"}</span>
+            {profile?.grade ? (
+              <span className="font-bold text-gray-900">{profile.grade}</span>
+            ) : (
+              <span className="font-bold text-red-500 flex items-center gap-1 animate-pulse">
+                <AlertCircle size={14} /> 未設定（編集から設定）
+              </span>
+            )}
           </div>
+
           <div className="flex justify-between items-center">
             <span>学科・コース</span>
             <span className="font-bold text-gray-900">{profile?.course}</span>
@@ -140,7 +144,7 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      {/* 通知設定セクション（復活） */}
+      {/* 通知設定セクション */}
       <section className="bg-white border border-gray-100 rounded-2xl shadow-sm mx-4 md:mx-0 p-6 space-y-4">
         <div className="flex items-center gap-2 mb-2">
           <Bell size={18} className="text-blue-500" />

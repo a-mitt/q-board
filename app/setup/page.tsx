@@ -12,6 +12,8 @@ export default function SetupPage() {
   const [course, setCourse] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // emailやpasswordの並びにこれを追加
+  const [grade, setGrade] = useState("");
 
   useEffect(() => {
     const checkUser = async () => {

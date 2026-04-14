@@ -2,7 +2,7 @@
 
 import { useState, KeyboardEvent } from "react";
 import { supabase } from "@/lib/supabase";
-import { X, Lock, Globe, Tag as TagIcon } from "lucide-react";
+import { X, Lock, Globe, Tag as TagIcon ,Check} from "lucide-react";
 
 type Props = { isOpen: boolean; onClose: () => void; onSuccess: () => void; };
 

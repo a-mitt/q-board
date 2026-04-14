@@ -1,108 +1,152 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import { Mail, Lock, Loader2, ArrowLeft } from "lucide-react";
-import Link from "next/link";
 
-export default function LoginPage() {
+export default function SetupPage() {
   const router = useRouter();
-  const [isLoginMode, setIsLoginMode] = useState(true); // true=ログイン, false=新規登録
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [studentId, setStudentId] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [course, setCourse] = useState("");
+  const [grade, setGrade] = useState(""); // 学年のState
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) return;
-    setLoading(true);
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push("/login"); // 未ログインならログイン画面へ
+        return;
+      }
 
-    if (isLoginMode) {
-      // ログイン処理
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        alert("ログイン失敗: メアドかパスワードが間違っています。");
-      } else {
+      // 既にプロフィールが存在するかチェック
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", user.id)
+        .single();
+
+      if (profile) {
+        // 既にプロフィールがあるなら、設定画面を見せずにホームへ飛ばす！
         router.push("/");
-      }
-    } else {
-      // 新規登録処理
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      if (error) {
-        alert("登録エラー: " + error.message);
       } else {
-        // 登録成功したらプロフィール設定画面へ
-        router.push("/setup");
+        setLoading(false); // プロフィールが無い場合のみ、入力画面を表示
       }
+    };
+    checkUser();
+  }, [router]);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      alert("ユーザー情報が見つかりません。一度戻ってログインし直してください。");
+      setSaving(false);
+      return;
     }
-    setLoading(false);
+
+    // Supabaseの profiles テーブルにデータを保存
+    const { error } = await supabase.from("profiles").upsert({
+      id: user.id, 
+      student_id: studentId,
+      nickname: nickname,
+      course: course,
+      grade: grade, // ★追加：ここで選んだ学年も一緒に保存する！
+      role: 'student', 
+    });
+
+    if (error) {
+      if (error.code === "23505" && error.message.includes("student_id")) {
+        alert("エラー: この学籍番号は既に登録されています。別の番号を入力してください。");
+      } else {
+        alert("保存中にエラーが発生しました: " + error.message);
+      }
+      setSaving(false);
+    } else {
+      alert("プロフィールを登録しました！掲示板へ移動します。");
+      router.push("/"); 
+    }
   };
 
-  return (
-    <div className="max-w-md mx-auto mt-20 p-6">
-      <Link href="/" className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-800 text-sm font-bold mb-6">
-        <ArrowLeft size={16} /> 掲示板に戻る
-      </Link>
+  if (loading) return <div className="text-center mt-20 text-gray-500">読み込み中...</div>;
 
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        {/* タブ切り替え */}
-        <div className="flex border-b border-gray-100">
-          <button 
-            onClick={() => setIsLoginMode(true)}
-            className={`flex-1 py-4 text-sm font-bold transition-colors ${isLoginMode ? "bg-white text-blue-600 border-b-2 border-blue-600" : "bg-gray-50 text-gray-400 hover:bg-gray-100"}`}
-          >
-            ログイン
-          </button>
-          <button 
-            onClick={() => setIsLoginMode(false)}
-            className={`flex-1 py-4 text-sm font-bold transition-colors ${!isLoginMode ? "bg-white text-blue-600 border-b-2 border-blue-600" : "bg-gray-50 text-gray-400 hover:bg-gray-100"}`}
-          >
-            新規登録
-          </button>
+  return (
+    <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-xl shadow-sm border border-gray-100">
+      <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">初期プロフィール設定</h1>
+      <form onSubmit={handleSave} className="space-y-4">
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            学籍番号 <span className="text-red-500 text-xs font-bold">必須・一度登録すると変更できません</span>
+          </label>
+          <input 
+            type="text" 
+            required 
+            value={studentId} 
+            onChange={e => setStudentId(e.target.value)} 
+            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none placeholder-gray-400 text-gray-800" 
+            placeholder="例: 24A1234" 
+          />
         </div>
 
-        <form onSubmit={handleAuth} className="p-6 space-y-4">
-          <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1">メールアドレス(学校メール推奨)</label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input 
-                type="email" 
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-gray-900"
-                placeholder="example@school.ac.jp"
-              />
-            </div>
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            ニックネーム <span className="text-gray-500 text-xs">スレッド等で表示されます</span>
+          </label>
+          <input 
+            type="text" 
+            value={nickname} 
+            onChange={e => setNickname(e.target.value)} 
+            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none placeholder-gray-400 text-gray-800"
+            placeholder="例: 名無しの新入生" 
+          />
+        </div>
 
-          <div>
-            <label className="block text-xs font-bold text-gray-500 mb-1">パスワード（6文字以上）</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input 
-                type="password" 
-                required
-                minLength={6}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white text-gray-900"
-                placeholder="••••••••"
-              />
-            </div>
-          </div>
-
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full mt-4 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition flex justify-center items-center gap-2"
+        {/* ★追加：学年のプルダウンメニュー */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            学年 <span className="text-gray-500 text-xs">任意</span>
+          </label>
+          <select 
+            value={grade} 
+            onChange={e => setGrade(e.target.value)} 
+            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-800 bg-white"
           >
-            {loading ? <Loader2 className="animate-spin" size={18} /> : (isLoginMode ? "ログイン" : "アカウントを作成")}
-          </button>
-        </form>
-      </div>
+            <option value="">選択してください</option>
+            <option value="1年">1年</option>
+            <option value="2年">2年</option>
+            <option value="3年">3年</option>
+            <option value="4年">4年</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            履修コース/専攻 <span className="text-gray-500 text-xs">任意</span>
+          </label>
+          <input 
+            type="text" 
+            value={course} 
+            onChange={e => setCourse(e.target.value)} 
+            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none placeholder-gray-400 text-gray-800"
+            placeholder="例: SEコース"
+          />
+        </div>
+
+        <button 
+          type="submit" 
+          disabled={saving} 
+          className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 mt-4"
+        >
+          {saving ? "保存中..." : "登録して掲示板へ"}
+        </button>
+      </form>
     </div>
   );
 }
