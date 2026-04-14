@@ -43,10 +43,13 @@ export default function AdminPage() {
       const { data: rData } = await supabase.from("reports").select("*, profiles!reporter_id(nickname)").order("created_at", { ascending: false });
       if (rData) setReports(rData);
 
-      // ユーザー（管理者のみ）
+      // ★ 修正：ユーザー一覧は Admin（管理者）の時だけ取得する
       if (myProf.role === "admin") {
         const { data: uData } = await supabase.from("admin_user_view").select("*").order("student_id", { ascending: true });
         if (uData) setUsers(uData);
+      } else {
+        // モデレーターならユーザー配列を空にする
+        setUsers([]); 
       }
     }
     setLoading(false);
@@ -119,6 +122,7 @@ export default function AdminPage() {
         <button onClick={() => setActiveTab("threads")} className={`flex-1 min-w-[80px] py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 ${activeTab === "threads" ? "bg-white shadow text-blue-600" : "text-gray-500"}`}>
           <MessageSquare size={14} /> スレッド
         </button>
+        {/* ★ 修正：Adminの時だけ「ユーザー」タブのボタンを表示 */}
         {myRole === "admin" && (
           <button onClick={() => setActiveTab("users")} className={`flex-1 min-w-[80px] py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 ${activeTab === "users" ? "bg-white shadow text-blue-600" : "text-gray-500"}`}>
             <Users size={14} /> ユーザー
@@ -128,6 +132,12 @@ export default function AdminPage() {
           <AlertTriangle size={14} /> 通報({reports.length})
         </button>
       </div>
+      {/* ★ 修正：表示コンテンツ側も念のため Admin かつ activeTab が users の時だけ出す */}
+      {activeTab === "users" && myRole === "admin" && (
+        <div className="grid gap-4">
+          {/* ユーザー一覧のループ処理... */}
+        </div>
+      )}
 
       {/* 1. 質問管理 */}
       {activeTab === "questions" && (
