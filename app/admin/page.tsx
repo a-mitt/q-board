@@ -144,9 +144,12 @@ export default function AdminPage() {
         <div className="space-y-3">
           {questions.length === 0 ? <p className="text-center py-10 text-gray-400">質問はありません</p> : 
           questions.map((q) => (
-            <div key={q.id} className={`p-4 bg-white rounded-xl border ${q.is_hidden ? "bg-gray-50 opacity-50" : ""}`}>
+            <div key={q.id} className={`p-4 rounded-xl border transition-all ${q.is_hidden ? "bg-gray-100 border-gray-300 opacity-60" : "bg-white"}`}>
               <div className="flex justify-between items-start mb-2">
-                <p className="font-bold text-gray-800 line-clamp-2 flex-1">{q.content}</p>
+                <div className="flex-1">
+                  {q.is_hidden && <span className="inline-block mb-1 px-2 py-0.5 text-xs font-bold text-white bg-gray-500 rounded">非表示</span>}
+                  <p className={`font-bold line-clamp-2 ${q.is_hidden ? "text-gray-500" : "text-gray-800"}`}>{q.content}</p>
+                </div>
                 <div className="flex gap-1 ml-4 shrink-0">
                   <button onClick={() => handleHide("questions", q.id, q.is_hidden)} className="p-2 hover:bg-gray-100 rounded-lg">
                     {q.is_hidden ? <CheckCircle className="text-green-500" size={18} /> : <EyeOff className="text-gray-400" size={18} />}
@@ -167,10 +170,11 @@ export default function AdminPage() {
         <div className="space-y-3">
           {threads.length === 0 ? <p className="text-center py-10 text-gray-400">スレッドはありません</p> :
           threads.map((t) => (
-            <div key={t.id} className={`p-4 bg-white rounded-xl border ${t.is_hidden ? "bg-gray-50 opacity-50" : ""}`}>
-               <div className="flex justify-between items-start mb-2">
-                <div>
-                  <p className="font-bold text-gray-800">{t.title}</p>
+            <div key={t.id} className={`p-4 rounded-xl border transition-all ${t.is_hidden ? "bg-gray-100 border-gray-300 opacity-60" : "bg-white"}`}>
+              <div className="flex justify-between items-start mb-2">
+                <div className="flex-1">
+                  {t.is_hidden && <span className="inline-block mb-1 px-2 py-0.5 text-xs font-bold text-white bg-gray-500 rounded">非表示</span>}
+                  <p className={`font-bold ${t.is_hidden ? "text-gray-500" : "text-gray-800"}`}>{t.title}</p>
                   <p className="text-xs text-gray-500 line-clamp-1">{t.content}</p>
                 </div>
                 <div className="flex gap-1 ml-4 shrink-0">

@@ -17,7 +17,7 @@ export default function TutorialModal({ isOpen, onClose }: Props) {
         {/* ヘッダー画像風の装飾 */}
         <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-6 text-center relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-20"><Sparkles size={60} /></div>
-          <h2 className="text-2xl font-black text-white relative z-10">ようこそ Q-BOARD へ！</h2>
+          <h2 className="text-2xl font-black text-white relative z-10">ようこそ 学生掲示板 へ！</h2>
           <p className="text-blue-100 text-sm mt-1 relative z-10 font-bold">5月末までの限定オープン！</p>
         </div>
 
@@ -46,7 +46,7 @@ export default function TutorialModal({ isOpen, onClose }: Props) {
               <div>
                 <h3 className="font-bold text-gray-800">2. 交流スレッド</h3>
                 <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                  サークル仲間を募集したり、趣味について同級生と語り合えるDiscord風の掲示板です。
+                  サークル仲間を募集したり、趣味について同学生と語り合えるDiscord風の掲示板です。
                 </p>
               </div>
             </div>

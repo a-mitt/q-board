@@ -4,12 +4,29 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { X, MessageSquare } from "lucide-react";
 
+
 type Props = { isOpen: boolean; onClose: () => void; onSuccess: () => void; };
 
 export default function CreateThreadModal({ isOpen, onClose, onSuccess }: Props) {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
+  // ★追加：タグ用のStateと関数
+  const [tagInput, setTagInput] = useState("");
+  const [tagList, setTagList] = useState<string[]>([]);
+  const RECOMMENDED_TAGS = ["雑談", "サークル", "相談", "趣味", "授業"];
+
+  const addTag = () => {
+    const trimmed = tagInput.trim().replace(/[#＃]/g, "");
+    if (trimmed && !tagList.includes(trimmed)) {
+      setTagList([...tagList, trimmed]);
+      setTagInput("");
+    }
+  };
+  const removeTag = (index: number) => setTagList(tagList.filter((_, i) => i !== index));
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") { e.preventDefault(); addTag(); }
+  };
 
   if (!isOpen) return null;
 
@@ -59,9 +76,22 @@ export default function CreateThreadModal({ isOpen, onClose, onSuccess }: Props)
       setLoading(false);
       return;
     }
+
+    // ★追加：タグの保存処理
+    for (const name of tagList) {
+      const { data: tData } = await supabase.from("tags").upsert({ name }, { onConflict: "name" }).select().single();
+      if (tData) {
+        await supabase.from("thread_tags").insert({ 
+          thread_id: threadData.id, 
+          tag_id: tData.id,
+          user_id: user.id 
+        });
+      }
+    }
     
     setTitle("");
     setContent("");
+    setTagList([]);
     onSuccess();
     onClose();
     setLoading(false);
@@ -100,6 +130,40 @@ export default function CreateThreadModal({ isOpen, onClose, onSuccess }: Props)
               onChange={(e) => setContent(e.target.value)}
               placeholder="スレッドの目的や、最初の話題を書いてください。"
               className="w-full h-32 p-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 text-sm placeholder-gray-300"
+            />
+          </div>
+
+          {/* ★追加：タグ入力エリア */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-gray-500 mb-1">タグ（任意）</label>
+            <div className="flex flex-wrap gap-2">
+              {tagList.map((tag, i) => (
+                <span key={i} className="flex items-center gap-1 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">
+                  #{tag}
+                  <button type="button" onClick={() => removeTag(i)} className="hover:text-red-500"><X size={14} /></button>
+                </span>
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 mb-1">
+              <span className="text-[10px] text-gray-400 font-bold">おすすめ:</span>
+              {RECOMMENDED_TAGS.map(tag => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => { if (!tagList.includes(tag)) setTagList([...tagList, tag]); }}
+                  className="text-[10px] bg-gray-50 text-gray-500 hover:bg-blue-50 hover:text-blue-600 px-2 py-1 rounded border border-gray-100 transition font-bold"
+                >
+                  +{tag}
+                </button>
+              ))}
+            </div>
+            <input
+              type="text"
+              value={tagInput}
+              onChange={(e) => setTagInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="タグ名を入力してEnter"
+              className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 text-sm placeholder-gray-300"
             />
           </div>
 

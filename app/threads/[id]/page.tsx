@@ -9,6 +9,7 @@ import {
   MoreHorizontal, Reply, AlertTriangle, CornerDownRight, X 
 } from "lucide-react";
 import ReactionButtons from "@/components/board/ReactionButtons";
+import TagEditor from "@/components/board/TagEditor"; // ★これを追加
 import { sendNotification } from "@/lib/utils/notifications";
 
 export default function ThreadDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -63,7 +64,11 @@ export default function ThreadDetailPage({ params }: { params: Promise<{ id: str
       setMyRole(profile?.role || "student");
     }
 
-    const { data: tData, error: tError } = await supabase.from("threads").select("*").eq("id", id).single();
+    // 変更前
+    // const { data: tData, error: tError } = await supabase.from("threads").select("*").eq("id", id).single();
+    
+    // 変更後
+    const { data: tData, error: tError } = await supabase.from("threads").select("*, thread_tags(user_id, tags(id, name))").eq("id", id).single();
     if (tError) { router.push("/threads"); return; }
     setThread(tData);
 
@@ -167,6 +172,20 @@ export default function ThreadDetailPage({ params }: { params: Promise<{ id: str
 
       <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
         <h1 className="text-2xl font-black text-gray-800 tracking-tight">{thread?.title}</h1>
+        
+        {/* ★ タグエディタを追加 */}
+        {thread && (
+          <div className="mt-4">
+            <TagEditor 
+              targetId={thread.id} 
+              targetType="thread" 
+              initialTags={thread.thread_tags || []} 
+              onUpdate={fetchThreadData} 
+              currentUser={currentUser} 
+              myRole={myRole} 
+            />
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-200 shadow-sm divide-y divide-gray-100">

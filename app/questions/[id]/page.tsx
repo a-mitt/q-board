@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   ArrowLeft, Send, User, Lock, Loader2, MoreHorizontal, 
-  Reply, AlertTriangle, Copy, X, CornerDownRight, EyeOff, RefreshCcw, Trash2
+  Reply, AlertTriangle, Copy, X, CornerDownRight, EyeOff, RefreshCcw, Trash2,
+  Check
 } from "lucide-react";
 import ReactionButtons from "@/components/board/ReactionButtons";
 import TagEditor from "@/components/board/TagEditor";
@@ -25,6 +26,7 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
   const [replyTarget, setReplyTarget] = useState<any>(null); // 返信先
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [isAnonymous, setIsAnonymous] = useState(true);
+  const [showGrade, setShowGrade] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -38,15 +40,15 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
       setMyRole(profile?.role || "student");
     }
 
-    const { data: qData } = await supabase.from("questions").select("*, profiles(*)").eq("id", id).single();
+    const { data: qData } = await supabase.from("questions").select("*, profiles(*), question_tags(user_id, tags(id, name))").eq("id", id).single();
     if (qData) setQuestion(qData);
 
     const { data: aData } = await supabase
       .from("answers")
       .select(`
         *, 
-        profiles(nickname, course, settings),
-        reply_to:reply_to_id(post_number, content, profiles(nickname))
+        profiles(nickname, course, settings, grade),
+        reply_to:reply_to_id(content, profiles(nickname))
       `)
       .eq("question_id", id)
       .order("created_at", { ascending: true });
@@ -71,6 +73,7 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
       user_id: currentUser.id,
       content: newAnswer,
       is_anonymous: isAnonymous,
+      show_grade: showGrade, // ★ 追加
       reply_to_id: replyTarget?.id || null
     }).select().single();
 
@@ -169,6 +172,17 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
         </div>
         {/* ★ 本文の文字色を text-gray-900 に */}
         <p className="text-gray-900 text-lg whitespace-pre-wrap mb-4 leading-relaxed">{question.content}</p>
+        
+        {/* ★ 改良版タグエディタ */}
+        <TagEditor 
+          targetId={question.id} 
+          targetType="question" 
+          initialTags={question.question_tags || []} 
+          onUpdate={fetchData} 
+          currentUser={currentUser} 
+          myRole={myRole} 
+        />
+
         <ReactionButtons targetId={question.id} type="question" />
       </section>
 
@@ -184,7 +198,11 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
             <div className="flex justify-between">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xl font-black text-red-400">A.</span>
-                <span className="text-xs font-bold text-gray-700">{ans.is_anonymous ? "匿名さん" : ans.profiles?.nickname}</span>
+                <span className="text-xs font-bold text-gray-700">
+                  {ans.is_anonymous ? "匿名" : ans.profiles?.nickname}
+                  {ans.show_grade && ans.profiles?.grade && `（${ans.profiles.grade}）`}
+                  さん
+                </span>
               </div>
               
               {/* 回答の三点リーダーメニュー */}
@@ -240,10 +258,25 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
             className="w-full h-20 p-3 bg-gray-50 border rounded-xl mb-3 outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
             placeholder={replyTarget ? "返信を入力..." : "回答を入力..."}
           />
-          <div className="flex justify-between">
-            <button type="button" onClick={() => setIsAnonymous(!isAnonymous)} className="text-xs font-bold flex items-center gap-1 text-gray-500">
-              {isAnonymous ? <Lock size={14}/> : <User size={14}/>} {isAnonymous ? "匿名" : "記名"}
-            </button>
+          <div className="flex justify-between items-center">
+            <div className="flex gap-4 items-center">
+              <button type="button" onClick={() => setIsAnonymous(!isAnonymous)} className="text-xs font-bold flex items-center gap-1 text-gray-500">
+                {isAnonymous ? <Lock size={14}/> : <User size={14}/>} {isAnonymous ? "匿名" : "記名"}
+              </button>
+              
+              {/* 学年表示スイッチ */}
+              <button 
+                type="button" 
+                onClick={() => setShowGrade(!showGrade)} 
+                className={`flex items-center gap-1.5 text-xs font-bold transition ${showGrade ? "text-blue-600" : "text-gray-400"}`}
+              >
+                <div className={`w-3.5 h-3.5 border-2 rounded flex items-center justify-center ${showGrade ? "border-blue-600 bg-blue-600" : "border-gray-300"}`}>
+                  {showGrade && <Check size={10} className="text-white" />}
+                </div>
+                学年を表示
+              </button>
+            </div>
+
             <button type="submit" disabled={submitting || !newAnswer.trim()} className="bg-blue-600 text-white px-6 py-2 rounded-full font-bold flex items-center gap-2">
               <Send size={16}/> {submitting ? "送信中" : "回答する"}
             </button>

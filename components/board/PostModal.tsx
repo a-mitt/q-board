@@ -156,10 +156,7 @@ export default function PostModal({ isOpen, onClose, onSuccess }: Props) {
               {isAnonymous ? "匿名で投稿" : "記名で投稿"}
             </button>
             <div className="flex gap-4 items-center">
-            <button type="button" onClick={() => setIsAnonymous(!isAnonymous)} className="...">
-              {isAnonymous ? <Lock size={16} /> : <Globe size={16} />}
-              {isAnonymous ? "匿名投稿" : "記名投稿"}
-            </button>
+            
             {/* ★ 学年表示スイッチを追加 */}
               <button 
                 type="button" 
