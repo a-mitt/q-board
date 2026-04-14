@@ -87,6 +87,36 @@ export default function SettingsPage() {
     await supabase.from("profiles").update({ settings: newSettings }).eq("id", profile.id);
     setProfile({ ...profile, settings: newSettings });
   };
+  
+  // ★退会（物理削除）の実行関数
+  const handleWithdrawal = async () => {
+    const isConfirmed = confirm(
+      "本当に掲示板を退会しますか？\n\n登録した学籍番号、ニックネーム、および過去の投稿（質問・回答）はすべて完全に削除され、復元できません。"
+    );
+    
+    if (!isConfirmed) return;
+
+    setUpdating(true);
+    try {
+      // 1. profilesテーブルから自身のデータを削除（これにより物理削除される）
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", profile.id);
+
+      if (profileError) throw profileError;
+
+      // 2. ログアウト処理
+      await supabase.auth.signOut();
+      
+      alert("退会処理が完了しました。すべてのデータが削除されました。");
+      router.push("/");
+    } catch (error: any) {
+      alert("退会処理中にエラーが発生しました: " + error.message);
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-500" size={40} /></div>;
 
@@ -98,24 +128,19 @@ export default function SettingsPage() {
       </div>
 
       <section className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm mx-4 md:mx-0">
-        <div className="flex justify-between items-start mb-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-3xl shadow-inner border border-blue-100">
-              {profile?.avatar_emoji ? profile.avatar_emoji : (profile?.nickname?.charAt(0) || "？")}
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">{profile?.nickname}</h2>
-              <p className="text-sm text-gray-500">{profile?.email}</p>
-            </div>
+        
+          {/* プロフィールヘッダー */}
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-16 h-16 shrink-0 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-3xl shadow-inner border border-blue-100">
+            {profile?.avatar_emoji ? profile.avatar_emoji : (profile?.nickname?.charAt(0) || "？")}
           </div>
-          <button 
-            onClick={() => setIsEditModalOpen(true)} 
-            className="flex items-center gap-1 px-3 py-2 bg-gray-50 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all font-bold text-xs"
-          >
-            <Edit3 size={16} /> 編集
-          </button>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-xl font-bold text-gray-900 truncate">{profile?.nickname}</h2>
+            <p className="text-sm text-gray-500 truncate">{profile?.email}</p>
+          </div>
         </div>
 
+        {/* 詳細項目ボックス */}
         <div className="bg-gray-50 p-4 rounded-xl text-sm font-medium text-gray-600 space-y-3">
           <div className="flex justify-between items-center">
             <span>学籍番号</span>
@@ -125,14 +150,13 @@ export default function SettingsPage() {
             </div>
           </div>
           
-          {/* ★ ここを修正：学年が未設定なら赤くする */}
           <div className="flex justify-between items-center">
             <span>学年</span>
             {profile?.grade ? (
               <span className="font-bold text-gray-900">{profile.grade}</span>
             ) : (
               <span className="font-bold text-red-500 flex items-center gap-1 animate-pulse">
-                <AlertCircle size={14} /> 未設定（編集から設定）
+                <AlertCircle size={14} /> 未設定
               </span>
             )}
           </div>
@@ -141,6 +165,14 @@ export default function SettingsPage() {
             <span>学科・コース</span>
             <span className="font-bold text-gray-900">{profile?.course}</span>
           </div>
+
+          {/* ★編集ボタンをここに移動 */}
+          <button 
+            onClick={() => setIsEditModalOpen(true)} 
+            className="w-full mt-2 flex items-center justify-center gap-2 py-3 bg-white text-blue-600 border border-blue-100 hover:bg-blue-50 rounded-xl transition-all font-black text-xs shadow-sm"
+          >
+            <Edit3 size={16} /> プロフィールを編集する
+          </button>
         </div>
       </section>
 
@@ -203,9 +235,13 @@ export default function SettingsPage() {
         <button onClick={() => { if(confirm("ログアウトしますか？")) supabase.auth.signOut().then(() => router.push("/")) }} className="w-full bg-white border-2 border-gray-100 text-gray-500 font-bold py-3 rounded-xl hover:bg-gray-50 transition flex justify-center items-center gap-2">
           <LogOut size={18} /> ログアウト
         </button>
-        <button onClick={() => alert("退会申請を受け付けます")} className="w-full bg-red-50 text-red-500 font-bold py-3 rounded-xl hover:bg-red-100 transition flex justify-center items-center gap-2">
-          <Trash2 size={18} /> 掲示板を退会する
-        </button>
+        <button 
+        onClick={handleWithdrawal}
+        disabled={updating}
+        className="w-full bg-red-50 text-red-500 font-bold py-3 rounded-xl hover:bg-red-100 transition flex justify-center items-center gap-2 disabled:opacity-50"
+      >
+        <Trash2 size={18} /> {updating ? "処理中..." : "掲示板を退会する"}
+      </button>
       </div>
 
       {/* 編集ポップアップ（一括修正） */}
@@ -239,7 +275,11 @@ export default function SettingsPage() {
                   <input 
                     type="text" 
                     value={newEmoji} 
-                    onChange={(e) => setNewEmoji(e.target.value)}
+                    onChange={(e) => {
+                      // 絵文字(サロゲートペア)を正しく1文字として扱う
+                      const val = Array.from(e.target.value);
+                      setNewEmoji(val.length > 0 ? val[0] : "");
+                    }} 
                     placeholder="🔥 や 🐣 など"
                     className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-gray-800"
                   />

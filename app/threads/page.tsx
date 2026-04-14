@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import CreateThreadModal from "@/components/board/CreateThreadModal";
 
+
 export default function ThreadsPage() {
   const [threads, setThreads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

@@ -93,6 +93,10 @@ export default function QuestionGridItem({ id, question, latestAnswer, tags, isA
         {/* Q (上8割エリア) */}
         <div className="flex-[8] p-4 flex flex-col gap-2 overflow-hidden">
           <span className="text-3xl font-black text-blue-500 font-serif leading-none">Q.</span>
+          
+          <h3 className="text-gray-800 font-bold text-sm sm:text-base line-clamp-5 mt-1 leading-relaxed">
+            {question}
+          </h3>
           <div className="flex flex-wrap gap-1 mt-1">
             {tags.map((tag, i) => (
               <span key={i} className="text-[10px] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-md font-bold">
@@ -100,9 +104,6 @@ export default function QuestionGridItem({ id, question, latestAnswer, tags, isA
               </span>
             ))}
           </div>
-          <h3 className="text-gray-800 font-bold text-sm sm:text-base line-clamp-5 mt-1 leading-relaxed">
-            {question}
-          </h3>
         </div>
 
         <div className="h-[1px] w-full bg-gray-100"></div>

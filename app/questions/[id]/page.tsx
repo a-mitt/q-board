@@ -47,7 +47,7 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
       .from("answers")
       .select(`
         *, 
-        profiles(nickname, course, settings, grade),
+        profiles(nickname, course, settings, grade, avatar_emoji),
         reply_to:reply_to_id(content, profiles(nickname))
       `)
       .eq("question_id", id)
@@ -143,10 +143,15 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-3">
             <span className="text-4xl font-black text-blue-500">Q.</span>
-            <div>
-              {/* ★ 文字色をハッキリ調整（text-gray-700に変更） */}
-              <p className="text-sm font-bold text-gray-700">{question.is_anonymous ? "匿名さん" : question.profiles?.nickname}</p>
-              <p className="text-[11px] text-gray-500 font-medium">{new Date(question.created_at).toLocaleString()}</p>
+            <div className="flex items-center gap-2">
+              {/* アイコン表示 */}
+              <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-xl shrink-0 border border-blue-100 text-gray-300">
+                {question.is_anonymous ? "？" : (question.profiles?.avatar_emoji || "👤")}
+              </div>
+              <div>
+                <p className="text-sm font-bold text-gray-700">{question.is_anonymous ? "匿名さん" : question.profiles?.nickname}</p>
+                <p className="text-[11px] text-gray-500 font-medium">{new Date(question.created_at).toLocaleString()}</p>
+              </div>
             </div>
           </div>
 
@@ -198,6 +203,10 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
             <div className="flex justify-between">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xl font-black text-red-400">A.</span>
+                {/* 回答者アイコン */}
+                <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-lg shrink-0 border border-gray-100 shadow-sm text-gray-300">
+                  {ans.is_anonymous ? "?" : (ans.profiles?.avatar_emoji || "👤")}
+                </div>
                 <span className="text-xs font-bold text-gray-700">
                   {ans.is_anonymous ? "匿名" : ans.profiles?.nickname}
                   {ans.show_grade && ans.profiles?.grade && `（${ans.profiles.grade}）`}

@@ -68,14 +68,14 @@ export default function ThreadDetailPage({ params }: { params: Promise<{ id: str
     // const { data: tData, error: tError } = await supabase.from("threads").select("*").eq("id", id).single();
     
     // 変更後
-    const { data: tData, error: tError } = await supabase.from("threads").select("*, thread_tags(user_id, tags(id, name))").eq("id", id).single();
+    const { data: tData, error: tError } = await supabase.from("threads").select("*, profiles(nickname, avatar_emoji), thread_tags(user_id, tags(id, name))").eq("id", id).single();
     if (tError) { router.push("/threads"); return; }
     setThread(tData);
 
     // ★ 返信元の情報（reply_to）も一緒に取得するように変更
     let query = supabase.from("thread_posts").select(`
       *, 
-      profiles(nickname),
+      profiles(nickname, avatar_emoji),
       reply_to:reply_to_id(post_number, content, profiles(nickname))
     `).eq("thread_id", id).order("post_number", { ascending: true });
     

@@ -81,9 +81,8 @@ export default function NotificationBell() {
           {/* 背景の透明なクリック判定（ポップアップ外を押したら閉じる用） */}
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)}></div>
           
-          {/* ★修正ポイント：右端固定(right-0) と スマホ幅制限(w-[85vw]) を追加！ */}
-          <div className="absolute right-0 mt-2 w-[85vw] sm:w-80 max-w-sm bg-white shadow-xl rounded-xl border border-gray-200 z-50 origin-top-right overflow-hidden">
-            
+          {/* ★修正: absolute から fixed に変更し、top-14 right-4 で「画面右上固定」にする */}
+          <div className="fixed top-14 right-4 w-[90vw] sm:w-80 max-w-sm bg-white shadow-xl rounded-xl border border-gray-200 z-50 origin-top-right overflow-hidden">
             {/* ヘッダー部分 */}
             <div className="p-3 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
               <span className="text-sm font-black text-black">お知らせ</span>
