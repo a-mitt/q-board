@@ -135,9 +135,9 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
   if (loading || !question) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-500" size={40} /></div>;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-32">
-      <Link href="/" className="flex items-center gap-2 text-gray-500 text-sm"><ArrowLeft size={18} /> 一覧に戻る</Link>
-
+    <div className="max-w-3xl mx-auto space-y-6 pb-64 md:pb-48">
+      <Link href="/" className="flex items-center gap-2 text-gray-500 text-sm font-bold hover:text-gray-800 transition"><ArrowLeft size={18} /> 一覧に戻る</Link>
+      
       {/* 質問本文 */}
       <section className="bg-white p-6 rounded-2xl shadow-sm border relative group">
         <div className="flex justify-between items-start mb-4">
