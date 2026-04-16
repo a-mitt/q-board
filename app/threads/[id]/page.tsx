@@ -34,6 +34,7 @@ export default function ThreadDetailPage({ params }: { params: Promise<{ id: str
 
   const [replyTarget, setReplyTarget] = useState<any>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [openThreadMenu, setOpenThreadMenu] = useState(false); // ★追加：スレッド本体のメニュー用
 
   // ★ 装飾タグの挿入
   const insertTag = (tag: string, value: string) => {
@@ -113,9 +114,18 @@ export default function ThreadDetailPage({ params }: { params: Promise<{ id: str
   useEffect(() => { fetchThreadData(); }, [id, myRole]);
 
   // --- アクション ---
+  // --- アクション ---
   const handlePost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim() || !currentUser) return;
+    
+    // ★ 修正1：未ログイン状態なら警告を出してログイン画面へ飛ばす
+    if (!currentUser) {
+      alert("セッションが切れました。再度ログインしてください。");
+      router.push("/login");
+      return;
+    }
+    
+    if (!content.trim()) return;
 
     setSubmitting(true);
     const nextPostNumber = posts.length > 0 ? posts[posts.length - 1].post_number + 1 : 1;
@@ -126,11 +136,14 @@ export default function ThreadDetailPage({ params }: { params: Promise<{ id: str
       post_number: nextPostNumber,
       content: content,
       is_anonymous: isAnonymous,
-      custom_name: isAnonymous && customName.trim() ? customName.trim() : null, // カスタム名
+      custom_name: isAnonymous && customName.trim() ? customName.trim() : null,
       reply_to_id: replyTarget?.id || null
     }).select().single();
 
-    if (!error) { 
+    // ★ 修正2：エラーがあればアラートを出すように変更（原因がわかるようにする）
+    if (error) {
+      alert("投稿に失敗しました。\n理由: " + error.message);
+    } else { 
       setContent(""); 
       setReplyTarget(null);
       fetchThreadData();
@@ -184,6 +197,38 @@ export default function ThreadDetailPage({ params }: { params: Promise<{ id: str
     setOpenMenuId(null);
   };
 
+  // ★ 追加：スレッドの通報処理
+  const handleReportThread = async () => {
+    const reason = prompt("このスレッドを通報する理由を入力してください：");
+    if (!reason) return;
+    await supabase.from("reports").insert({
+      reporter_id: currentUser?.id,
+      target_type: 'thread',
+      target_id: thread.id,
+      reason: reason
+    });
+    alert("通レッドを通報しました。");
+    setOpenThreadMenu(false);
+  };
+
+  // ★ 追加：スレッドの削除処理（スレ主・管理者用）
+  const handleDeleteThread = async () => {
+    if (!confirm("このスレッドを完全に削除しますか？\n（書き込まれたレスもすべて消去され、元に戻せません）")) return;
+    
+    // スレッドに紐づくタグとレスを先に削除（外部キー制約エラー回避のため）
+    await supabase.from("thread_tags").delete().eq("thread_id", thread.id);
+    await supabase.from("thread_posts").delete().eq("thread_id", thread.id);
+    
+    const { error } = await supabase.from("threads").delete().eq("id", thread.id);
+    
+    if (error) {
+      alert("削除できませんでした。\n理由: " + error.message);
+    } else {
+      alert("スレッドを削除しました。");
+      router.push("/threads");
+    }
+  };
+
   if (loading) return <div className="flex justify-center py-20"><div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div></div>;
 
   return (
@@ -192,8 +237,42 @@ export default function ThreadDetailPage({ params }: { params: Promise<{ id: str
         <ArrowLeft size={18} /> スレッド一覧へ
       </Link>
 
-      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-        <h1 className="text-2xl font-black text-gray-800 tracking-tight">{thread?.title}</h1>
+      {/* ★ 修正：タイトル部分にメニューを追加 */}
+      <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm relative">
+        <div className="flex justify-between items-start gap-4">
+          <h1 className="text-2xl font-black text-gray-800 tracking-tight">{thread?.title}</h1>
+          
+          <div className="relative shrink-0">
+            <button onClick={() => setOpenThreadMenu(!openThreadMenu)} className="p-2 text-gray-400 hover:text-gray-600 transition rounded-full hover:bg-gray-50">
+              <MoreHorizontal size={24} />
+            </button>
+            
+            {openThreadMenu && (
+              <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-200 shadow-xl rounded-xl z-50 overflow-hidden font-bold">
+                {/* 自分が立てたスレでなければ通報を出せる */}
+                {currentUser?.id !== thread?.creator_id && (
+                  <button 
+                    onClick={handleReportThread}
+                    className="w-full px-4 py-3 text-left text-xs hover:bg-red-50 flex items-center gap-2 text-red-500"
+                  >
+                    <AlertTriangle size={14} /> スレッドを通報する
+                  </button>
+                )}
+                
+                {/* スレ主 または 管理者の場合は削除できる */}
+                {(currentUser?.id === thread?.creator_id || myRole === "admin" || myRole === "moderator") && (
+                  <button 
+                    onClick={handleDeleteThread}
+                    className="w-full px-4 py-3 text-left text-xs hover:bg-red-600 hover:text-white flex items-center gap-2 text-red-600 border-t border-gray-50 transition-colors"
+                  >
+                    <Trash2 size={14} /> スレッドを削除する
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
         {thread && (
           <div className="mt-4">
             <TagEditor 
