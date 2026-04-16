@@ -43,9 +43,10 @@ export default function Home() {
         .eq("id", user.id)
         .single();
 
-      if (!profile) {
-        router.push("/setup");
-      }
+      // 修正：強制リダイレクトをコメントアウトまたは削除し、警告などを出すだけに留めるか、何もしない
+      // if (!profile) {
+      //   router.push("/setup");
+      // }
     };
     checkProfile();
   }, [router]);
