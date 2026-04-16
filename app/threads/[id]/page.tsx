@@ -96,7 +96,7 @@ export default function ThreadDetailPage({ params }: { params: Promise<{ id: str
     let query = supabase.from("thread_posts").select(`
       *, 
       profiles(nickname, avatar_emoji),
-      reply_to:reply_to_id(post_number, content, is_anonymous, profiles(nickname))
+      reply_to:reply_to_id(post_number, content, is_anonymous, is_anonymous, profiles(nickname))
     `).eq("thread_id", id).order("post_number", { ascending: true });
     
     if (myRole === "student") {
@@ -304,12 +304,13 @@ export default function ThreadDetailPage({ params }: { params: Promise<{ id: str
       <div className="fixed bottom-16 md:bottom-0 left-0 right-0 bg-white border-t p-4 z-40">
         <div className="max-w-4xl mx-auto">
           {replyTarget && (
-            <div className="flex justify-between items-center bg-blue-50 border-x border-t border-blue-100 px-4 py-2 rounded-t-xl text-[11px]">
-              <div className="flex items-center gap-2 text-blue-600 font-bold">
-                <Reply size={12} />
-                <span>{">>"} {replyTarget.post_number} に返信中</span>
-                <span className="text-blue-400 font-normal line-clamp-1 opacity-70"> - {replyTarget.content}</span>
-              </div>
+                          <div className="flex justify-between items-center bg-blue-50 border-x border-t border-blue-100 px-4 py-2 rounded-t-xl text-[11px]">
+                            <div className="flex items-center gap-2 text-blue-600 font-bold">
+                              <Reply size={12} />
+                              <span>{">>"}
+            {replyTarget.post_number} に返信中</span>
+                              <span className="text-blue-400 font-normal line-clamp-1 opacity-70"> - {replyTarget.content}</span>
+                            </div>
               <button onClick={() => setReplyTarget(null)} className="text-blue-400 hover:text-blue-600"><X size={14} /></button>
             </div>
           )}

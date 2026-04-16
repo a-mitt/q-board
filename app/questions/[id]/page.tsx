@@ -48,7 +48,7 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
       .select(`
         *, 
         profiles(nickname, course, settings, grade, avatar_emoji),
-        reply_to:reply_to_id(content, profiles(nickname))
+        reply_to:reply_to_id(content, is_anonymous, profiles(nickname))
       `)
       .eq("question_id", id)
       .order("created_at", { ascending: true });
@@ -135,8 +135,8 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
   if (loading || !question) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-500" size={40} /></div>;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-32">
-      <Link href="/" className="flex items-center gap-2 text-gray-500 text-sm"><ArrowLeft size={18} /> 一覧に戻る</Link>
+    <div className="max-w-3xl mx-auto space-y-6 pb-64 md:pb-48">
+      <Link href="/" className="flex items-center gap-2 text-gray-500 text-sm font-bold hover:text-gray-800 transition"><ArrowLeft size={18} /> 一覧に戻る</Link>
 
       {/* 質問本文 */}
       <section className="bg-white p-6 rounded-2xl shadow-sm border relative group">
@@ -197,7 +197,8 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
           <div key={ans.id} className="bg-gray-50 p-5 rounded-xl border relative group">
             {ans.reply_to && (
               <div className="flex items-center gap-1 text-[10px] text-gray-500 mb-2">
-                <CornerDownRight size={12} /> ↳ {ans.reply_to.profiles?.nickname || "匿名"}さんの回答へ返信
+                {/* 修正後 */}
+                <CornerDownRight size={12} />{ans.reply_to.is_anonymous ? "匿名" : ans.reply_to.profiles?.nickname}さんの回答へ返信
               </div>
             )}
             <div className="flex justify-between">

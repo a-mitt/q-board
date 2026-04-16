@@ -23,31 +23,58 @@ export default function SettingsPage() {
   const [newEmoji, setNewEmoji] = useState("");
   const [newGrade, setNewGrade] = useState("");
 
-  const fetchProfile = async () => {
+const fetchProfile = async () => {
     setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-    const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-    
-    const defaultSettings = {
-      notifications: { onReaction: true, onAnswer: true, onReply: true }
-    };
-    
-    const currentProfile = { 
-      ...data, 
-      email: user.email,
-      settings: data.settings || defaultSettings 
-    };
+    try {
+      // 1. Authユーザーの確認
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    setProfile(currentProfile);
-    setNewNickname(data.nickname || "");
-    setNewCourse(data.course || "");
-    setNewEmoji(data.avatar_emoji || "");
-    setNewGrade(data.grade || "");
-    setLoading(false);
+      // ログインしていない、またはエラーの場合はログインページへ
+      if (authError || !user) {
+        console.log("未ログインのためリダイレクトします");
+        router.replace("/"); // ここをログイン画面のパスに合わせてください（"/" または "/login"）
+        return; // ここで処理を終了し、下の profiles 取得に行かせない
+      }
+
+      // 2. プロフィール情報の取得
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      // プロフィールが存在しない（初期登録が未完了）場合
+      if (profileError || !profileData) {
+        console.log("プロフィールが見つかりません。ログイン画面へ戻します。");
+        // もし「登録がないならログインからやり直してほしい」ならログアウトして戻すのが一番確実です
+        await supabase.auth.signOut();
+        router.replace("/login"); 
+        return;
+      }
+
+      // データがある場合はStateを更新
+      const defaultSettings = {
+        notifications: { onReaction: true, onAnswer: true, onReply: true }
+      };
+
+      const currentProfile = { 
+        ...profileData, 
+        email: user.email,
+        settings: profileData.settings || defaultSettings 
+      };
+
+      setProfile(currentProfile);
+      setNewNickname(profileData.nickname || "");
+      setNewCourse(profileData.course || "");
+      setNewEmoji(profileData.avatar_emoji || "");
+      setNewGrade(profileData.grade || "");
+      
+      setLoading(false);
+
+    } catch (error) {
+      console.error("予期せぬエラー:", error);
+      router.replace("/");
+    }
   };
 
   useEffect(() => {
