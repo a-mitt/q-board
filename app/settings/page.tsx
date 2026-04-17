@@ -117,25 +117,27 @@ const fetchProfile = async () => {
   
   // ★退会（物理削除）の実行関数
   const handleWithdrawal = async () => {
+    // ★ 修正：確認ダイアログの追加
     const isConfirmed = confirm(
-      "本当に掲示板を退会しますか？\n\n登録した学籍番号、ニックネーム、および過去の投稿（質問・回答）はすべて完全に削除され、復元できません。"
+      "本当に掲示板を退会しますか？\n\n登録したプロフィール情報、および過去の投稿（質問・回答・スレッド）はすべて完全に削除され、同じ学籍番号での再登録もできなくなります。"
     );
     
     if (!isConfirmed) return;
 
     setUpdating(true);
     try {
-      // 1. profilesテーブルから自身のデータを削除（これにより物理削除される）
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // profilesテーブルから自身のデータを削除（物理削除）
       const { error: profileError } = await supabase
         .from("profiles")
         .delete()
-        .eq("id", profile.id);
+        .eq("id", user.id);
 
       if (profileError) throw profileError;
 
-      // 2. ログアウト処理
       await supabase.auth.signOut();
-      
       alert("退会処理が完了しました。すべてのデータが削除されました。");
       router.push("/");
     } catch (error: any) {

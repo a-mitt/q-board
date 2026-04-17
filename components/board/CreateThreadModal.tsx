@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { X, MessageSquare } from "lucide-react";
-
 
 type Props = { isOpen: boolean; onClose: () => void; onSuccess: () => void; };
 
@@ -11,10 +10,35 @@ export default function CreateThreadModal({ isOpen, onClose, onSuccess }: Props)
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [loading, setLoading] = useState(false);
-  // ★追加：タグ用のStateと関数
+  
+  // ★追加：デフォルト名とテキストエリアのRef
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [defaultNameSuffix, setDefaultNameSuffix] = useState("新入生");
+
   const [tagInput, setTagInput] = useState("");
   const [tagList, setTagList] = useState<string[]>([]);
   const RECOMMENDED_TAGS = ["雑談", "サークル", "相談", "趣味", "授業"];
+
+  // ★追加：タグ挿入関数
+  const insertTag = (tag: string, value: string) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = content.substring(start, end);
+    const before = content.substring(0, start);
+    const after = content.substring(end);
+    const openTag = `[${tag}=${value}]`;
+    const closeTag = `[/${tag}]`;
+    setContent(before + openTag + selectedText + closeTag + after);
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(
+        start + openTag.length + selectedText.length,
+        start + openTag.length + selectedText.length
+      );
+    }, 0);
+  };
 
   const addTag = () => {
     const trimmed = tagInput.trim().replace(/[#＃]/g, "");
@@ -42,7 +66,10 @@ export default function CreateThreadModal({ isOpen, onClose, onSuccess }: Props)
       return;
     }
 
-    // 1. スレッド（箱）を作成し、作られた箱のID（threadData）を受け取る
+    // ★修正：入力されたデフォルト名を結合
+    const fullName = "名無しの" + (defaultNameSuffix.trim() || "新入生");
+
+    // 1. スレッド（箱）を作成
     const { data: threadData, error: threadError } = await supabase
       .from("threads")
       .insert({
@@ -50,6 +77,7 @@ export default function CreateThreadModal({ isOpen, onClose, onSuccess }: Props)
         title: title.trim(),
         content: content.trim(),
         is_hidden: false,
+        default_name: fullName // ★保存
       })
       .select()
       .single();
@@ -60,7 +88,7 @@ export default function CreateThreadModal({ isOpen, onClose, onSuccess }: Props)
       return;
     }
 
-    // 2. ★修正：post_number: 1（レス番） を追加して確実に保存する！
+    // 2. 最初の書き込みを保存
     const { error: postError } = await supabase
       .from("thread_posts")
       .insert({
@@ -68,7 +96,7 @@ export default function CreateThreadModal({ isOpen, onClose, onSuccess }: Props)
         user_id: user.id,
         content: content.trim(),
         is_anonymous: true,
-        post_number: 1, // ← ★ココを追加！最初の書き込みなので「1」番を指定します
+        post_number: 1,
       });
 
     if (postError) {
@@ -77,7 +105,7 @@ export default function CreateThreadModal({ isOpen, onClose, onSuccess }: Props)
       return;
     }
 
-    // ★追加：タグの保存処理
+    // タグの保存処理
     for (const name of tagList) {
       const { data: tData } = await supabase.from("tags").upsert({ name }, { onConflict: "name" }).select().single();
       if (tData) {
@@ -91,6 +119,7 @@ export default function CreateThreadModal({ isOpen, onClose, onSuccess }: Props)
     
     setTitle("");
     setContent("");
+    setDefaultNameSuffix("新入生");
     setTagList([]);
     onSuccess();
     onClose();
@@ -99,8 +128,8 @@ export default function CreateThreadModal({ isOpen, onClose, onSuccess }: Props)
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
-        <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center">
+      <div className="bg-white w-full max-w-lg max-h-[90vh] rounded-2xl shadow-2xl overflow-y-auto">
+        <div className="p-4 border-b border-gray-100 bg-gray-50 flex justify-between items-center sticky top-0 z-10">
           <h2 className="font-black text-gray-800 flex items-center gap-2">
             <MessageSquare size={18} className="text-blue-500" /> 新規スレッド作成
           </h2>
@@ -109,7 +138,7 @@ export default function CreateThreadModal({ isOpen, onClose, onSuccess }: Props)
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 space-y-5">
           <div>
             <label className="block text-xs font-bold text-gray-500 mb-1">スレッドのタイトル（必須）</label>
             <input
@@ -122,18 +151,60 @@ export default function CreateThreadModal({ isOpen, onClose, onSuccess }: Props)
             />
           </div>
 
+          {/* ★追加：デフォルト名（名無し）の設定 */}
+          <div>
+            <label className="block text-xs font-bold text-gray-500 mb-1">デフォルトの呼び名</label>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold text-gray-700 bg-gray-100 px-3 py-3 rounded-xl border border-gray-200 shrink-0">名無しの</span>
+              <input
+                maxLength={15}
+                value={defaultNameSuffix}
+                onChange={(e) => setDefaultNameSuffix(e.target.value)}
+                placeholder="新入生"
+                className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 text-sm font-bold placeholder-gray-300"
+              />
+            </div>
+            <p className="text-[10px] text-gray-400 mt-1">※このスレッドで書き込む人の基本の名前になります。</p>
+          </div>
+
           <div>
             <label className="block text-xs font-bold text-gray-500 mb-1">最初の書き込み（必須）</label>
+            
+            {/* ★追加：装飾ツールバー */}
+            <div className="flex gap-3 px-2 py-1.5 bg-gray-50 rounded-t-xl border border-gray-200 border-b-0 overflow-x-auto items-center">
+              <div className="flex gap-2 border-r border-gray-300 pr-3 shrink-0">
+                {[
+                  { name: "blue", bg: "bg-blue-500" },
+                  { name: "red", bg: "bg-red-500" },
+                  { name: "green", bg: "bg-green-500" },
+                  { name: "yellow", bg: "bg-yellow-500" },
+                  { name: "orange", bg: "bg-orange-500" },
+                  { name: "purple", bg: "bg-purple-500" }
+                ].map(c => (
+                  <button 
+                    key={c.name} type="button" onClick={() => insertTag("color", c.name)} 
+                    className={`w-5 h-5 rounded-full border border-gray-300 shadow-sm ${c.bg}`} 
+                  />
+                ))}
+              </div>
+              <div className="flex gap-1 text-[10px] font-bold text-gray-600 shrink-0">
+                <button type="button" onClick={() => insertTag("size", "small")} className="px-2 py-1 bg-white border rounded hover:bg-gray-100 shadow-sm">小</button>
+                <button type="button" onClick={() => insertTag("size", "large")} className="px-2 py-1 bg-white border rounded hover:bg-gray-100 shadow-sm">大</button>
+                <button type="button" onClick={() => insertTag("size", "huge")} className="px-2 py-1 bg-white border rounded hover:bg-gray-100 shadow-sm">特大</button>
+              </div>
+            </div>
+
             <textarea
+              ref={textareaRef}
               required
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="スレッドの目的や、最初の話題を書いてください。"
-              className="w-full h-32 p-3 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 text-sm placeholder-gray-300"
+              className="w-full h-32 p-3 border border-gray-200 rounded-b-xl outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 text-sm placeholder-gray-300 resize-none"
             />
           </div>
 
-          {/* ★追加：タグ入力エリア */}
+          {/* タグ入力エリア */}
           <div className="space-y-2">
             <label className="block text-xs font-bold text-gray-500 mb-1">タグ（任意）</label>
             <div className="flex flex-wrap gap-2">

@@ -67,6 +67,23 @@ export default function LoginPage() {
     setAuthLoading(false);
   };
 
+  // ★ パスワード再設定メール送信機能
+  const handleForgotPassword = async () => {
+    const email = prompt("登録したメールアドレスを入力してください：");
+    if (!email) return;
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      // 再設定後のリダイレクト先を /settings に設定（ログイン状態で遷移します）
+      redirectTo: `${window.location.origin}/settings`,
+    });
+
+    if (error) {
+      alert("エラー: " + error.message);
+    } else {
+      alert("パスワード再設定用のメールを送信しました。メール内のリンクをクリックして、設定画面からパスワードを変更してください。");
+    }
+  };
+
   // 3. プロフィール保存の処理（いただいたコードをそのまま活用！）
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -125,6 +142,14 @@ export default function LoginPage() {
           </div>
           <button type="submit" disabled={authLoading} className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition disabled:opacity-50">
             {authLoading ? "処理中..." : (isLoginMode ? "ログイン" : "登録する")}
+          </button>
+          {/* ★ 追加：パスワードを忘れた場合のリンク */}
+          <button 
+            type="button" 
+            onClick={handleForgotPassword}
+            className="w-full text-xs text-gray-400 hover:text-blue-500 font-bold transition pt-2"
+          >
+            パスワードを忘れた場合はこちら
           </button>
         </form>
         <div className="mt-6 text-center">
