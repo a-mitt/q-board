@@ -88,11 +88,11 @@ export default function QuestionGridItem({ id, question, latestAnswer, tags, isA
 
       <Link 
         href={`/questions/${id}`} 
-        className="block aspect-square rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition flex flex-col overflow-hidden"
+        className="group block aspect-square rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition flex flex-col overflow-hidden"
       >
         {/* Q (上8割エリア) */}
         <div className="flex-[8] p-4 flex flex-col gap-2 overflow-hidden">
-          <span className="text-3xl font-black text-blue-500 font-serif leading-none">Q.</span>
+          <span className="group-hover:scale-115 origin-top-left text-3xl font-black text-blue-500 font-serif leading-none transition-transform duration-200">Q.</span>
           
           <h3 className="text-gray-800 font-bold text-sm sm:text-base line-clamp-5 mt-1 leading-relaxed">
             {question}
